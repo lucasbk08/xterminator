@@ -42,17 +42,17 @@ A inicialização não depende do carregamento completo de imagens e outros recu
 Uma aba que já tenha um painel da extensão não recebe uma segunda execução:
 pare e feche esse painel antes de iniciar outra.
 
-- **Posts próprios:** exclui posts próprios na aba principal.
-- **Posts e respostas:** usa a aba Replies, que pode incluir posts e respostas.
-- **Só reposts:** seleciona Reposts quando disponível e desfaz reposts ativos.
-- **Posts próprios e reposts:** processa ambos na aba principal; não percorre
-  automaticamente todas as abas.
-- **Tudo (respostas e depois reposts):** varre a aba Replies e, ao esgotá-la, passa
-  para a aba Reposts na mesma execução.
+- **Tudo: posts, respostas e reposts:** limpa a conta inteira. É o padrão.
+- **Só posts próprios:** não toca em reposts nem na aba de respostas.
+- **Só reposts:** apenas desfaz reposts ativos; não exclui nada.
 
-Em **Tudo (respostas e depois reposts)**, a execução varre a aba Replies e, quando
-ela acaba, passa sozinha para a aba Reposts, mantendo o limite e a cota da execução.
-Quando o X mostra o aviso de aba vazia, a extensão encerra na hora, sem recarregar
+O X tem duas formas de organizar o perfil, e a extensão lida com as duas. Na
+interface com **menu suspenso** (All / Posts / Highlights), ela escolhe *All* para
+limpar tudo, ou *Posts* no modo Só posts próprios, e os filtros separam o resto. Na
+interface com **abas** (Posts / Replies / Reposts), o modo Tudo varre a aba Replies
+e, ao esgotá-la, passa sozinha para a aba Reposts na mesma execução.
+
+Quando o X mostra o aviso de lista vazia, a extensão encerra na hora, sem recarregar
 a página para conferir.
 
 O limite (1 a 1000) é compartilhado entre todas as ações da execução. O intervalo

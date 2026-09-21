@@ -3,8 +3,8 @@
   const options = filters.validate(globalThis.XTerminatorOptions);
   const USERNAME = options.username || filters.profileUsername();
   const MAX = options.limit;
-  // 'all' varre a aba Respostas (posts e respostas) e depois a aba Reposts.
-  const STAGES = options.mode === 'all' ? ['replies', 'reposts'] : [options.mode];
+  // Abas a percorrer na interface antiga. A nova resolve tudo num seletor só.
+  const TABS = options.mode === 'all' ? ['replies', 'reposts'] : [options.mode];
   if (document.getElementById('xterminator-deletion')) return;
   const resume = globalThis.XTerminatorResume;
   delete globalThis.XTerminatorResume;
@@ -43,7 +43,7 @@
   let undone = resume?.undone || 0;
   let reloads = resume?.reloads || 0;
   let emptyReloads = resume?.emptyReloads || 0;
-  let stageIndex = Math.min(Math.max(resume?.stageIndex || 0, 0), STAGES.length - 1);
+  let stageIndex = Math.min(Math.max(resume?.stageIndex || 0, 0), TABS.length - 1);
   const completed = new Set(resume?.completed || []);
   let reloading = false;
   const totals = () => `${deleted - undone} posts excluídos e ${undone} reposts desfeitos`;
@@ -153,8 +153,7 @@
       check();
       await loadStamps();
       for (;;) {
-      const stage = filters.validate({ ...options, mode: STAGES[stageIndex] });
-      await filters.selectTimeline(stage, () => stopped);
+      const single = await filters.selectTimeline(options, TABS[stageIndex], () => stopped) === 'all';
       check();
       window.scrollTo(0, 0);
       await pause(1800);
@@ -175,7 +174,7 @@
           const match = post(article);
           if (!match || skipped.has(match[2])) continue;
           seen.add(match[2]);
-          if (!filters.matches(filters.read(article), stage)) {
+          if (!filters.matches(filters.read(article), options)) {
             skipped.add(match[2]);
             continue;
           }
@@ -200,7 +199,7 @@
         const { article, id } = candidate;
         article.scrollIntoView({ block: 'center' });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) continue;
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) continue;
         const isRepost = filters.read(article).repost;
         const caret = isRepost ? filters.undoButton(article) : article.querySelector('[data-testid="caret"]');
         if (!caret) throw new Error('Botão da ação selecionada não encontrado.');
@@ -221,7 +220,7 @@
             .find(el => visible(el) && actionName.test(el.textContent.trim()));
         });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O item mudou antes da ação.');
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O item mudou antes da ação.');
         item.click();
         menuOpen = false;
         if (!isRepost) {
@@ -230,7 +229,7 @@
           return visible(el) && /^(Delete|Excluir|Apagar)$/i.test(el.textContent.trim()) ? el : null;
         });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O post mudou antes da confirmação.');
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O post mudou antes da confirmação.');
         confirmation.click();
         confirmation = null;
         }
@@ -247,7 +246,7 @@
               confirmation = sheet;
               check();
               if (!actionName.test(sheet.textContent.trim())) throw new Error('Confirmação de repost não reconhecida.');
-              if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O repost mudou antes da confirmação.');
+              if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O repost mudou antes da confirmação.');
               sheet.click();
               confirmation = null;
               return false;
@@ -299,7 +298,7 @@
           return;
         }
       }
-      if (stageIndex + 1 < STAGES.length) { stageIndex++; emptyReloads = 0; continue; }
+      if (!single && stageIndex + 1 < TABS.length) { stageIndex++; emptyReloads = 0; continue; }
       break;
       }
       const reason = emptied ? 'A aba não tem mais itens.' : emptyReloads >= 2 ? 'Duas recargas seguidas sem progresso.' : reloads >= 10 ? 'Limite de 10 recargas atingido.' : 'Busca encerrada nos trechos carregados.';

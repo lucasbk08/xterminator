@@ -38,7 +38,8 @@
     const seen = new Set();
     const selected = new Set();
     let unchanged = 0;
-    await filters.selectTimeline(options, () => stopped);
+    // A prévia percorre a primeira aba do modo; em 'all', a linha do tempo completa.
+    await filters.selectTimeline(options, options.mode === 'all' ? 'replies' : options.mode, () => stopped);
     profilePath = location.pathname;
     window.scrollTo(0, 0);
     await pause();

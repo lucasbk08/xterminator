@@ -284,6 +284,48 @@ class ExtensionTests(unittest.TestCase):
         self.assertLess(times[1] - times[0], 500)
         self.assertNotIn('remoções a cada', self.page.evaluate("XTerminatorFilters.describe(XTerminatorFilters.validate({}))"))
 
+    def dropdown(self, label='Posts'):
+        self.page.evaluate("""label => {
+          const trigger = document.createElement('button');
+          trigger.setAttribute('aria-haspopup', 'menu');
+          trigger.textContent = label;
+          trigger.onclick = () => {
+            const menu = document.createElement('div');
+            menu.setAttribute('role', 'menu');
+            for (const name of ['All', 'Posts', 'Highlights']) {
+              const item = document.createElement('div');
+              item.setAttribute('role', 'menuitem');
+              item.textContent = name;
+              item.onclick = () => { trigger.textContent = name; menu.remove(); };
+              menu.append(item);
+            }
+            document.body.append(menu);
+          };
+          document.body.prepend(trigger);
+        }""", label)
+
+    def trigger_label(self):
+        return self.page.evaluate("document.querySelector('button[aria-haspopup=menu]').textContent")
+
+    def test_new_dropdown_selects_all_for_full_cleanup(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2')
+        self.dropdown('Posts')
+        self.assertEqual(self.run_delete(), ['1'])
+        self.assertEqual(self.page.evaluate('undone'), 1)
+        self.assertEqual(self.trigger_label(), 'All')
+
+    def test_new_dropdown_keeps_posts_only_mode_out_of_replies(self):
+        self.options(limit=5, interval=0.1, mode='posts')
+        self.post('1')
+        self.repost('2')
+        self.dropdown('All')
+        self.assertEqual(self.run_delete(), ['1'])
+        # Em 'posts' o seletor volta para Posts, que não lista respostas.
+        self.assertEqual(self.trigger_label(), 'Posts')
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 0)
+
     def test_all_mode_moves_from_replies_to_reposts(self):
         self.options(limit=5, interval=0.1, mode='all')
         self.post('1')

@@ -168,6 +168,7 @@ class ReloadTests(unittest.TestCase):
         popup.goto(f'chrome-extension://{extension_id}/popup.html')
         popup.locator('#interval').fill('2.75')
         popup.locator('#limit').fill('1')
+        popup.locator('#mode').select_option('posts')
         with self.context.expect_page() as created:
             popup.locator('#delete').click()
         target = created.value
@@ -222,6 +223,7 @@ class ReloadTests(unittest.TestCase):
         popup = self.context.new_page()
         popup.goto(f"chrome-extension://{self.worker.url.split('/')[2]}/popup.html")
         popup.locator('#limit').fill('1')
+        popup.locator('#mode').select_option('posts')
         with self.context.expect_page() as created:
             popup.locator('#delete').click()
         target = created.value
@@ -243,6 +245,7 @@ class ReloadTests(unittest.TestCase):
         popup = self.context.new_page()
         popup.goto(f"chrome-extension://{self.worker.url.split('/')[2]}/popup.html")
         popup.locator('#limit').fill('1')
+        popup.locator('#mode').select_option('posts')
         with self.context.expect_page() as created:
             popup.locator('#run').click()
         target = created.value
@@ -257,6 +260,7 @@ class ReloadTests(unittest.TestCase):
         popup = self.context.new_page()
         popup.goto(f"chrome-extension://{self.worker.url.split('/')[2]}/popup.html")
         popup.locator('#limit').fill('1')
+        popup.locator('#mode').select_option('posts')
         with self.context.expect_page() as created:
             popup.locator('#delete').click()
         target = created.value

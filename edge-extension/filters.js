@@ -24,9 +24,44 @@
     const found = profileUsername(parsed.href);
     return !!found && (!username || found === username.toLowerCase());
   }
-  async function selectTimeline(options, cancelled = () => false) {
-    if (!['reposts', 'replies'].includes(options.mode)) return;
-    const replies = options.mode === 'replies';
+  const shown = el => el && el.getClientRects().length > 0;
+  const ALL_NAME = /^(all|tudo|todos)$/i;
+  const POSTS_NAME = /^(posts|publicações)$/i;
+  // Interface nova do X: um menu suspenso (All / Posts / Highlights) no lugar das abas.
+  function timelineTrigger() {
+    return [...document.querySelectorAll('button, [role="button"]')].find(el => shown(el)
+      && (ALL_NAME.test(el.textContent.trim()) || POSTS_NAME.test(el.textContent.trim()) || /^(highlights|destaques)$/i.test(el.textContent.trim()))
+      && (el.getAttribute('aria-haspopup') === 'menu' || el.hasAttribute('aria-expanded')));
+  }
+  async function selectFromDropdown(wanted, cancelled) {
+    const trigger = timelineTrigger();
+    if (!trigger) return false;
+    if (wanted.test(trigger.textContent.trim())) return true;
+    trigger.click();
+    const end = Date.now() + 8000;
+    let item = null;
+    while (Date.now() < end && !item) {
+      if (cancelled()) throw new Error('Parado pelo usuário.');
+      // Só age no menu do filtro da linha do tempo, reconhecido por listar Posts.
+      const menu = [...document.querySelectorAll('[role="menu"]')].filter(shown)
+        .find(el => [...el.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')].some(option => POSTS_NAME.test(option.textContent.trim())));
+      item = menu && [...menu.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')].find(option => wanted.test(option.textContent.trim()));
+      if (!item) await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    if (!item) {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+      return false;
+    }
+    item.click();
+    await new Promise(resolve => setTimeout(resolve, 1800));
+    return true;
+  }
+  async function selectTimeline(options, target = options.mode, cancelled = () => false) {
+    if (cancelled()) throw new Error('Parado pelo usuário.');
+    // Em 'posts' o menu fica em Posts; nos demais, em All, e o filtro separa o resto.
+    if (await selectFromDropdown(target === 'posts' ? POSTS_NAME : ALL_NAME, cancelled)) return 'all';
+    if (!['reposts', 'replies'].includes(target)) return 'none';
+    const replies = target === 'replies';
     const name = replies ? /^(replies|respostas|posts e respostas)$/i : /^(reposts|retweets|republicações)$/i;
     const path = replies ? /\/with_replies\/?$/i : /\/(reposts|retweets)\/?$/i;
     const label = replies ? 'Replies / Respostas' : 'Reposts';
@@ -35,9 +70,9 @@
     // A lista antiga pode misturar reposts nos posts; só troca quando existe a aba.
     if (!tab) {
       if (replies && !path.test(location.pathname)) throw new Error('Abra a aba Replies / Respostas do perfil e tente novamente.');
-      return;
+      return 'none';
     }
-    if (tab.getAttribute('aria-selected') === 'true') return;
+    if (tab.getAttribute('aria-selected') === 'true') return 'tab';
     const link = tab.matches('a') ? tab : tab.closest('a') || tab.querySelector('a');
     if (link && !isProfile(link.href, options.username || profileUsername())) throw new Error(`Endereço da aba ${label} não reconhecido.`);
     tab.click();
@@ -48,7 +83,7 @@
       const selected = [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].some(el => name.test(el.textContent.trim()));
       if (selected || path.test(location.pathname)) {
         await new Promise(resolve => setTimeout(resolve, 1800));
-        return;
+        return 'tab';
       }
       await new Promise(resolve => setTimeout(resolve, 200));
     }
@@ -97,7 +132,7 @@
   function matches(post, options) {
     if (!post) return false;
     if (post.repost) {
-      if (!['reposts', 'both'].includes(options.mode) || !post.canUndo) return false;
+      if (!['reposts', 'both', 'all'].includes(options.mode) || !post.canUndo) return false;
     } else if (options.mode === 'reposts' || post.author !== (options.username || profileUsername())) return false;
     if (options.from || options.to) {
       if (!Number.isFinite(post.timestamp)) return false;

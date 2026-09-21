@@ -39,6 +39,12 @@ try {
   // Campos ausentes no que foi salvo mantêm o padrão do formulário, e não o da validação.
   const raw = JSON.parse(localStorage.getItem('filters') || '{}');
   const saved = XTerminatorFilters.validate(raw);
-  for (const key of fields) if (key in raw) document.getElementById(key).value = saved[key];
+  for (const key of fields) {
+    if (!(key in raw)) continue;
+    const field = document.getElementById(key);
+    field.value = saved[key];
+    // Um modo salvo que saiu do formulário volta para a primeira opção.
+    if (field.tagName === 'SELECT' && !field.value) field.selectedIndex = 0;
+  }
 } catch { localStorage.removeItem('filters'); }
 updatePace();

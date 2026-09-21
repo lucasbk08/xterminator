@@ -114,7 +114,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         if (!state || state.stage !== 'account' || Date.now() - state.savedAt > 600000) throw new Error('Abra a extensão para iniciar novamente.');
         const options = XTerminatorFilters.validate({ ...state.options, username: message.username });
         if (!options.username) throw new Error('Conta não identificada.');
-        const suffix = options.mode === 'replies' ? '/with_replies' : '';
+        // Modos que começam pelas respostas abrem direto a aba Replies na interface antiga.
+        const suffix = ['replies', 'all'].includes(options.mode) ? '/with_replies' : '';
         await chrome.storage.session.set({ [key]: { ...state, options, stage: 'profile' } });
         const destination = `https://x.com/${options.username}${suffix}`;
         if (new URL(sender.url).pathname.replace(/\/$/, '') === new URL(destination).pathname) {
