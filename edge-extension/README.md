@@ -46,7 +46,11 @@ pare e feche esse painel antes de iniciar outra.
 - **Só posts próprios:** não toca em reposts nem na aba de respostas.
 - **Só reposts:** apenas desfaz reposts ativos; não exclui nada.
 
-O X tem duas formas de organizar o perfil, e a extensão lida com as duas. Na
+O perfil pode ter uma aba **All**, que reúne posts, respostas e reposts numa lista
+só, no endereço `x.com/usuario/all`. Quando ela existe, o modo Tudo usa essa aba e
+não precisa percorrer as outras — a aba Reposts nem sempre traz tudo.
+
+O X tem outras formas de organizar o perfil, e a extensão lida com elas. Na
 interface com **menu suspenso** (All / Posts / Highlights), ela escolhe *All* para
 limpar tudo, ou *Posts* no modo Só posts próprios, e os filtros separam o resto. Na
 interface com **abas** (Posts / Replies / Reposts), o modo Tudo varre a aba Replies

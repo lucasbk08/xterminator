@@ -341,6 +341,47 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
         self.assertEqual(self.page.evaluate("document.querySelector('nav a').getAttribute('aria-selected')"), 'true')
 
+    def test_profile_paths_include_the_all_timeline(self):
+        cases = {
+            'https://x.com/conta_demo': True,
+            'https://x.com/conta_demo/all': True,
+            'https://x.com/conta_demo/with_replies': True,
+            'https://x.com/conta_demo/reposts': True,
+            'https://x.com/conta_demo/media': False,
+            'https://x.com/conta_demo/status/1': False,
+            'https://x.com/home': False,
+        }
+        for url, expected in cases.items():
+            with self.subTest(url=url):
+                result = self.page.evaluate("url => XTerminatorFilters.isProfile(url, 'conta_demo')", url)
+                self.assertEqual(result, expected)
+
+    def test_all_tab_is_preferred_over_sweeping_tabs(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2')
+        # Perfil com All, Replies, Reposts e Media, como na interface atual.
+        self.page.evaluate("""() => {
+          const list = document.createElement('div');
+          list.setAttribute('role', 'tablist');
+          for (const name of ['All', 'Replies', 'Reposts', 'Media']) {
+            const tab = document.createElement('div');
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', name === 'All' ? 'true' : 'false');
+            tab.textContent = name;
+            tab.onclick = () => {
+              [...list.children].forEach(el => el.setAttribute('aria-selected', 'false'));
+              tab.setAttribute('aria-selected', 'true');
+            };
+            list.append(tab);
+          }
+          document.body.prepend(list);
+        }""")
+        self.assertEqual(self.run_delete(), ['1'])
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
+        # A aba All já traz tudo: não faz sentido passar para Reposts depois.
+        self.assertEqual(self.page.evaluate("document.querySelector('[role=tab][aria-selected=true]').textContent"), 'All')
+
     def test_all_mode_moves_from_replies_to_reposts(self):
         self.options(limit=5, interval=0.1, mode='all')
         self.post('1')

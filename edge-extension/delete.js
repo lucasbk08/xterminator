@@ -3,8 +3,8 @@
   const options = filters.validate(globalThis.XTerminatorOptions);
   const USERNAME = options.username || filters.profileUsername();
   const MAX = options.limit;
-  // Abas a percorrer na interface antiga. A nova resolve tudo num seletor só.
-  const TABS = options.mode === 'all' ? ['replies', 'reposts'] : [options.mode];
+  // Em 'all', a aba All já traz posts e reposts. Sem ela, varre Replies e Reposts.
+  let TABS = options.mode === 'all' ? ['all'] : [options.mode];
   if (document.getElementById('xterminator-deletion')) return;
   const resume = globalThis.XTerminatorResume;
   delete globalThis.XTerminatorResume;
@@ -153,7 +153,13 @@
       check();
       await loadStamps();
       for (;;) {
-      const single = await filters.selectTimeline(options, TABS[stageIndex], () => stopped) === 'all';
+      const chosen = await filters.selectTimeline(options, TABS[stageIndex], () => stopped);
+      if (chosen === 'none' && TABS[stageIndex] === 'all') {
+        // Perfil sem aba All: volta para a varredura por abas.
+        TABS = ['replies', 'reposts'];
+        continue;
+      }
+      const single = chosen === 'all';
       check();
       window.scrollTo(0, 0);
       await pause(1800);

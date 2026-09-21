@@ -16,7 +16,7 @@
   }
   function profileUsername(url = location.href) {
     const parsed = new URL(url);
-    const match = parsed.pathname.match(/^\/([a-z0-9_]{1,15})(?:\/(?:reposts|retweets|with_replies))?\/?$/i);
+    const match = parsed.pathname.match(/^\/([a-z0-9_]{1,15})(?:\/(?:all|reposts|retweets|with_replies))?\/?$/i);
     return parsed.origin === 'https://x.com' && match && !['home', 'explore', 'notifications', 'messages', 'settings', 'i', 'login', 'search'].includes(match[1].toLowerCase()) ? match[1].toLowerCase() : '';
   }
   function isProfile(url = location.href, username = '') {
@@ -56,30 +56,36 @@
     await new Promise(resolve => setTimeout(resolve, 1800));
     return true;
   }
+  // A aba All lista posts e reposts juntos; a aba Reposts nem sempre traz tudo.
+  const TARGETS = {
+    all: { name: ALL_NAME, path: /\/all\/?$/i, label: 'All / Tudo' },
+    replies: { name: /^(replies|respostas|posts e respostas)$/i, path: /\/with_replies\/?$/i, label: 'Replies / Respostas' },
+    reposts: { name: /^(reposts|retweets|republicações)$/i, path: /\/(reposts|retweets)\/?$/i, label: 'Reposts' },
+  };
   async function selectTimeline(options, target = options.mode, cancelled = () => false) {
     if (cancelled()) throw new Error('Parado pelo usuário.');
-    // Em 'posts' o menu fica em Posts; nos demais, em All, e o filtro separa o resto.
-    if (await selectFromDropdown(target === 'posts' ? POSTS_NAME : ALL_NAME, cancelled)) return 'all';
-    if (!['reposts', 'replies'].includes(target)) return 'none';
-    const replies = target === 'replies';
-    const name = replies ? /^(replies|respostas|posts e respostas)$/i : /^(reposts|retweets|republicações)$/i;
-    const path = replies ? /\/with_replies\/?$/i : /\/(reposts|retweets)\/?$/i;
-    const label = replies ? 'Replies / Respostas' : 'Reposts';
-    if (cancelled()) throw new Error('Parado pelo usuário.');
+    const wanted = TARGETS[target];
+    // Sem aba própria (modo 'posts'): resta o menu suspenso da interface nova.
+    if (!wanted) return await selectFromDropdown(POSTS_NAME, cancelled) ? 'all' : 'none';
+    const { name, path, label } = wanted;
     // A aba pode vir só com ícone, sem texto: o endereço identifica melhor que o rótulo.
     const tabHref = el => {
       const anchor = el.matches('a') ? el : el.closest('a') || el.querySelector('a');
       try { return anchor ? new URL(anchor.getAttribute('href'), location.href).pathname : ''; } catch { return ''; }
     };
     const identifies = el => [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
-      .some(text => text && name.test(text.trim())) || path.test(tabHref(el));
+      .some(text => text && name.test(text.trim())) || (!!path && path.test(tabHref(el)));
     const tab = [...document.querySelectorAll('[role="tab"], nav a, [role="tablist"] a')].find(identifies);
-    // A lista antiga pode misturar reposts nos posts; só troca quando existe a aba.
     if (!tab) {
-      if (replies && !path.test(location.pathname)) throw new Error('Abra a aba Replies / Respostas do perfil e tente novamente.');
+      // A lista antiga pode misturar reposts nos posts; só troca quando existe a aba.
+      if (await selectFromDropdown(ALL_NAME, cancelled)) return 'all';
+      if (target === 'replies' && !path.test(location.pathname)) throw new Error('Abra a aba Replies / Respostas do perfil e tente novamente.');
       return 'none';
     }
-    if (tab.getAttribute('aria-selected') === 'true') return 'tab';
+    const done = () => target === 'all' ? 'all' : 'tab';
+    const selected = () => tab.getAttribute('aria-selected') === 'true'
+      || [...document.querySelectorAll('[aria-selected="true"]')].some(identifies);
+    if (selected()) return done();
     const link = tab.matches('a') ? tab : tab.closest('a') || tab.querySelector('a');
     if (link && !isProfile(link.href, options.username || profileUsername())) throw new Error(`Endereço da aba ${label} não reconhecido.`);
     tab.click();
@@ -87,10 +93,9 @@
     while (Date.now() < end) {
       if (cancelled()) throw new Error('Parado pelo usuário.');
       if (!isProfile()) throw new Error('Você saiu do perfil.');
-      const selected = [...document.querySelectorAll('[aria-selected="true"]')].some(identifies);
-      if (selected || path.test(location.pathname)) {
+      if (selected() || (path && path.test(location.pathname))) {
         await new Promise(resolve => setTimeout(resolve, 1800));
-        return 'tab';
+        return done();
       }
       await new Promise(resolve => setTimeout(resolve, 200));
     }
@@ -153,7 +158,7 @@
     return !options.keyword || post.text.toLocaleLowerCase('pt-BR').includes(options.keyword.toLocaleLowerCase('pt-BR'));
   }
   function describe(options) {
-    const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies', all: 'tudo: aba Replies e depois aba Reposts' }[options.mode];
+    const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies', all: 'posts próprios, respostas e reposts' }[options.mode];
     const rest = options.windowLimit ? ` · no máximo ${options.windowLimit} remoções a cada ${options.windowSeconds} s` : '';
     return `Até ${options.limit} itens · ${type} · intervalo de ${options.interval} s${rest} · ${options.from || 'sem data inicial'} até ${options.to || 'sem data final'} (datas locais, inclusive; reposts usam a data do post original) · ${options.keyword ? `texto contendo “${options.keyword}”` : 'qualquer texto'}`;
   }
