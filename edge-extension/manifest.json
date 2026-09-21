@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "XTerminator",
+  "version": "0.8.0",
+  "description": "Limpe posts, respostas e reposts da sua conta com prévia, filtros e intervalo configurável.",
+  "host_permissions": ["https://x.com/*"],
+  "permissions": ["scripting", "storage"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["https://x.com/*"], "js": ["filters.js", "bootstrap.js"], "run_at": "document_end" }],
+  "action": { "default_popup": "popup.html" }
+}

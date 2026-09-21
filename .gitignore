@@ -1,0 +1,48 @@
+.venv/
+venv/
+env/
+sessao_x/
+sessao_*/
+session*/
+browser-profile*/
+User Data/
+Local State
+Cookies
+Cookies-*
+Login Data
+Login Data-*
+Web Data
+Web Data-*
+Network/
+storage-state*.json
+storage_state*.json
+auth-state*.json
+cookies*.json
+cookies*.txt
+credentials*.json
+secrets*.json
+secrets*.toml
+client_secret*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.har
+*.log
+apagados.log
+.auth/
+playwright/.auth/
+test-results/
+playwright-report/
+screenshots/
+captures/
+.agents/
+.codex/
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+dist/
