@@ -1,9 +1,14 @@
-const fields = ['limit', 'interval', 'from', 'to', 'keyword', 'mode'];
+const fields = ['limit', 'interval', 'restEvery', 'restSeconds', 'from', 'to', 'keyword', 'mode'];
 const status = document.querySelector('#status');
 function updatePace() {
   const seconds = Number(document.querySelector('#interval').value);
-  document.querySelector('#pace').textContent = Number.isFinite(seconds) && seconds > 0
+  const every = Number(document.querySelector('#restEvery').value);
+  const rest = Number(document.querySelector('#restSeconds').value);
+  const pace = Number.isFinite(seconds) && seconds > 0
     ? `Uma ação a cada ${seconds.toLocaleString('pt-BR')} segundos, após a confirmação do X.` : 'Escolha o intervalo entre as ações.';
+  const pause = Number.isInteger(every) && every > 0 && Number.isFinite(rest) && rest > 0
+    ? ` A cada ${every} itens, uma pausa de ${rest.toLocaleString('pt-BR')} segundos.` : ' Sem pausas periódicas (0 desliga).';
+  document.querySelector('#pace').textContent = pace + pause;
 }
 async function start(file) {
   try {
@@ -29,9 +34,11 @@ async function start(file) {
 }
 document.querySelector('#run').addEventListener('click', () => start('simulate.js'));
 document.querySelector('#delete').addEventListener('click', () => start('delete.js'));
-document.querySelector('#interval').addEventListener('input', updatePace);
+for (const id of ['interval', 'restEvery', 'restSeconds']) document.getElementById(id).addEventListener('input', updatePace);
 try {
-  const saved = XTerminatorFilters.validate(JSON.parse(localStorage.getItem('filters') || '{}'));
-  for (const key of fields) document.getElementById(key).value = saved[key];
+  // Campos ausentes no que foi salvo mantêm o padrão do formulário, e não o da validação.
+  const raw = JSON.parse(localStorage.getItem('filters') || '{}');
+  const saved = XTerminatorFilters.validate(raw);
+  for (const key of fields) if (key in raw) document.getElementById(key).value = saved[key];
 } catch { localStorage.removeItem('filters'); }
 updatePace();

@@ -193,9 +193,14 @@
         skipped.add(id);
         status.textContent = `${deleted}/${MAX} itens removidos: ${totals()}.`;
         if (stopped || deleted >= MAX) break;
-        const nextAction = Date.now() + options.interval * 1000;
+        // A cada restEvery itens, espera restSeconds em vez do intervalo normal.
+        const resting = options.restEvery > 0 && deleted % options.restEvery === 0;
+        const nextAction = Date.now() + (resting ? options.restSeconds : options.interval) * 1000;
         while (Date.now() < nextAction && !stopped) {
-          status.textContent = `${totals()}. Próxima ação em ${Math.ceil((nextAction - Date.now()) / 1000)} s.`;
+          const seconds = Math.ceil((nextAction - Date.now()) / 1000);
+          status.textContent = resting
+            ? `${totals()}. Descanso de ${options.restSeconds} s a cada ${options.restEvery} itens. Retomando em ${seconds} s.`
+            : `${totals()}. Próxima ação em ${seconds} s.`;
           await pause(Math.min(250, nextAction - Date.now()));
         }
       }

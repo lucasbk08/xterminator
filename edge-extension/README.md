@@ -13,7 +13,8 @@ extensão usa a interface do site; não promete conformidade nem ausência de bl
 Respeite os limites do serviço. Código distribuído sem garantias, sob [MIT](LICENSE).
 
 Extensão local para limpar posts, respostas e reposts da conta conectada ao X.
-Inclui prévia, filtros de data e texto, limite por execução e intervalo configurável.
+Inclui prévia, filtros de data e texto, limite por execução, intervalo configurável
+e descanso periódico entre lotes.
 
 ## Instalar no Edge
 
@@ -25,8 +26,8 @@ Inclui prévia, filtros de data e texto, limite por execução e intervalo confi
 
 ## Usar
 
-Abra a extensão em qualquer página. Escolha conteúdo, quantidade e intervalo entre
-as ações. Clique em **Ver prévia** ou **Preparar remoção**. Se a aba atual já estiver
+Abra a extensão em qualquer página. Escolha conteúdo, quantidade, intervalo entre
+as ações e o descanso periódico. Clique em **Ver prévia** ou **Preparar remoção**. Se a aba atual já estiver
 no X, a extensão usa essa aba; em outros sites, abre uma nova aba do X. Ela encontra
 o link **Profile/Perfil** na barra lateral, identifica a conta e abre seu perfil
 antes de mostrar a confirmação. Se necessário,
@@ -52,6 +53,12 @@ aceita decimais, entre 0,1 e 86400 segundos (padrão: 1,5). A espera começa ap�
 confirmação da operação pelo X. O tempo real inclui o carregamento e as verificações.
 O botão Parar funciona durante a espera. Intervalos curtos podem atingir rate limits;
 nenhum intervalo garante evitá-los.
+
+**Descanso periódico:** a cada N itens removidos, a extensão espera um tempo maior
+no lugar do intervalo normal — útil para espaçar rajadas. Configure em **Descansar a
+cada** (1 a 1000 itens, ou 0 para desligar) e **Descanso em segundos** (1 a 86400).
+O painel mostra a contagem regressiva e o botão Parar continua ativo durante o
+descanso. Essa pausa reduz o ritmo, mas não garante evitar limites ou bloqueios.
 
 ## Filtros
 
