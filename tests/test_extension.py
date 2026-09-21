@@ -326,6 +326,21 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(self.trigger_label(), 'Posts')
         self.assertEqual(self.page.evaluate('window.undone || 0'), 0)
 
+    def test_icon_only_tab_is_found_by_its_address(self):
+        self.options(limit=5, interval=0.1, mode='reposts')
+        self.repost('2')
+        # Aba sem texto, como na interface que usa apenas ícones.
+        self.page.evaluate("""() => {
+          const nav = document.createElement('nav');
+          nav.innerHTML = '<a href="/conta_demo/reposts" aria-selected="false"><span><svg></svg></span></a>';
+          // O X intercepta o clique; aqui evitamos a navegação real da página de teste.
+          nav.firstChild.onclick = event => { event.preventDefault(); nav.firstChild.setAttribute('aria-selected', 'true'); };
+          document.body.prepend(nav);
+        }""")
+        self.assertEqual(self.run_delete(), [])
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
+        self.assertEqual(self.page.evaluate("document.querySelector('nav a').getAttribute('aria-selected')"), 'true')
+
     def test_all_mode_moves_from_replies_to_reposts(self):
         self.options(limit=5, interval=0.1, mode='all')
         self.post('1')

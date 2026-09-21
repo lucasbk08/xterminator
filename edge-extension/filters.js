@@ -66,7 +66,14 @@
     const path = replies ? /\/with_replies\/?$/i : /\/(reposts|retweets)\/?$/i;
     const label = replies ? 'Replies / Respostas' : 'Reposts';
     if (cancelled()) throw new Error('Parado pelo usuário.');
-    const tab = [...document.querySelectorAll('[role="tab"], nav a')].find(el => name.test(el.textContent.trim()));
+    // A aba pode vir só com ícone, sem texto: o endereço identifica melhor que o rótulo.
+    const tabHref = el => {
+      const anchor = el.matches('a') ? el : el.closest('a') || el.querySelector('a');
+      try { return anchor ? new URL(anchor.getAttribute('href'), location.href).pathname : ''; } catch { return ''; }
+    };
+    const identifies = el => [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
+      .some(text => text && name.test(text.trim())) || path.test(tabHref(el));
+    const tab = [...document.querySelectorAll('[role="tab"], nav a, [role="tablist"] a')].find(identifies);
     // A lista antiga pode misturar reposts nos posts; só troca quando existe a aba.
     if (!tab) {
       if (replies && !path.test(location.pathname)) throw new Error('Abra a aba Replies / Respostas do perfil e tente novamente.');
@@ -80,7 +87,7 @@
     while (Date.now() < end) {
       if (cancelled()) throw new Error('Parado pelo usuário.');
       if (!isProfile()) throw new Error('Você saiu do perfil.');
-      const selected = [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].some(el => name.test(el.textContent.trim()));
+      const selected = [...document.querySelectorAll('[aria-selected="true"]')].some(identifies);
       if (selected || path.test(location.pathname)) {
         await new Promise(resolve => setTimeout(resolve, 1800));
         return 'tab';

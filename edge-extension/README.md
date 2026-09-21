@@ -50,7 +50,9 @@ O X tem duas formas de organizar o perfil, e a extensão lida com as duas. Na
 interface com **menu suspenso** (All / Posts / Highlights), ela escolhe *All* para
 limpar tudo, ou *Posts* no modo Só posts próprios, e os filtros separam o resto. Na
 interface com **abas** (Posts / Replies / Reposts), o modo Tudo varre a aba Replies
-e, ao esgotá-la, passa sozinha para a aba Reposts na mesma execução.
+e, ao esgotá-la, passa sozinha para a aba Reposts na mesma execução. As abas são
+reconhecidas pelo endereço, pelo rótulo acessível ou pelo texto, então funcionam
+mesmo quando o X as desenha apenas como ícones, sem texto visível.
 
 Quando o X mostra o aviso de lista vazia, a extensão encerra na hora, sem recarregar
 a página para conferir.
