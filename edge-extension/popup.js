@@ -1,14 +1,14 @@
-const fields = ['limit', 'interval', 'restEvery', 'restSeconds', 'from', 'to', 'keyword', 'mode'];
+const fields = ['limit', 'interval', 'windowLimit', 'windowSeconds', 'from', 'to', 'keyword', 'mode'];
 const status = document.querySelector('#status');
 function updatePace() {
   const seconds = Number(document.querySelector('#interval').value);
-  const every = Number(document.querySelector('#restEvery').value);
-  const rest = Number(document.querySelector('#restSeconds').value);
+  const cap = Number(document.querySelector('#windowLimit').value);
+  const span = Number(document.querySelector('#windowSeconds').value);
   const pace = Number.isFinite(seconds) && seconds > 0
     ? `Uma ação a cada ${seconds.toLocaleString('pt-BR')} segundos, após a confirmação do X.` : 'Escolha o intervalo entre as ações.';
-  const pause = Number.isInteger(every) && every > 0 && Number.isFinite(rest) && rest > 0
-    ? ` A cada ${every} itens, uma pausa de ${rest.toLocaleString('pt-BR')} segundos.` : ' Sem pausas periódicas (0 desliga).';
-  document.querySelector('#pace').textContent = pace + pause;
+  const quota = Number.isInteger(cap) && cap > 0 && Number.isFinite(span) && span > 0
+    ? ` No máximo ${cap} remoções a cada ${Math.round(span / 60)} min, contando execuções anteriores.` : ' Sem cota por janela (0 desliga).';
+  document.querySelector('#pace').textContent = pace + quota;
 }
 async function start(file) {
   try {
@@ -34,7 +34,7 @@ async function start(file) {
 }
 document.querySelector('#run').addEventListener('click', () => start('simulate.js'));
 document.querySelector('#delete').addEventListener('click', () => start('delete.js'));
-for (const id of ['interval', 'restEvery', 'restSeconds']) document.getElementById(id).addEventListener('input', updatePace);
+for (const id of ['interval', 'windowLimit', 'windowSeconds']) document.getElementById(id).addEventListener('input', updatePace);
 try {
   // Campos ausentes no que foi salvo mantêm o padrão do formulário, e não o da validação.
   const raw = JSON.parse(localStorage.getItem('filters') || '{}');

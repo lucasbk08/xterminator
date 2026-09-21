@@ -93,7 +93,7 @@ class ExtensionTests(unittest.TestCase):
         return self.page.evaluate("sent")
 
     def test_validation(self):
-        for options in [{"interval": 0}, {"interval": -1}, {"interval": "abc"}, {"interval": 86401}, {"username": "a/b"}, {"limit": 0}, {"limit": 1.5}, {"limit": 1001}, {"from": "2023-02-30"}, {"from": "2023-02-02", "to": "2023-01-01"}, {"restEvery": -1}, {"restEvery": 1.5}, {"restEvery": 1001}, {"restEvery": 2, "restSeconds": 0}, {"restEvery": 2, "restSeconds": 86401}]:
+        for options in [{"interval": 0}, {"interval": -1}, {"interval": "abc"}, {"interval": 86401}, {"username": "a/b"}, {"limit": 0}, {"limit": 1.5}, {"limit": 1001}, {"from": "2023-02-30"}, {"from": "2023-02-02", "to": "2023-01-01"}, {"windowLimit": -1}, {"windowLimit": 1.5}, {"windowLimit": 10001}, {"windowLimit": 2, "windowSeconds": 0}, {"windowLimit": 2, "windowSeconds": 86401}]:
             with self.subTest(options=options):
                 result = self.page.evaluate("options => { try { XTerminatorFilters.validate(options); return false; } catch { return true; } }", options)
                 self.assertTrue(result)
@@ -253,8 +253,8 @@ class ExtensionTests(unittest.TestCase):
         times = self.page.evaluate('actionTimes')
         self.assertGreaterEqual(times[1] - times[0], 195)
 
-    def test_rest_pauses_every_configured_number_of_items(self):
-        self.options(limit=3, interval=0.1, restEvery=2, restSeconds=1)
+    def test_window_quota_waits_before_exceeding_the_cap(self):
+        self.options(limit=3, interval=0.1, windowLimit=2, windowSeconds=2)
         for id in ['1', '2', '3']:
             self.post(id)
         self.page.evaluate("""() => {
@@ -265,11 +265,11 @@ class ExtensionTests(unittest.TestCase):
         }""")
         self.assertEqual(self.run_delete(), ['1', '2', '3'])
         times = self.page.evaluate('actionTimes')
-        # Sem descanso entre o 1º e o 2º; descanso completo antes do 3º.
+        # Os dois primeiros cabem na cota; o terceiro espera a janela abrir.
         self.assertLess(times[1] - times[0], 500)
-        self.assertGreaterEqual(times[2] - times[1], 950)
+        self.assertGreaterEqual(times[2] - times[0], 2000)
 
-    def test_rest_disabled_by_default(self):
+    def test_window_quota_disabled_by_default(self):
         self.options(limit=2, interval=0.1)
         self.post('1')
         self.post('2')
@@ -282,7 +282,7 @@ class ExtensionTests(unittest.TestCase):
         self.assertEqual(self.run_delete(), ['1', '2'])
         times = self.page.evaluate('actionTimes')
         self.assertLess(times[1] - times[0], 500)
-        self.assertNotIn('descanso', self.page.evaluate("XTerminatorFilters.describe(XTerminatorFilters.validate({}))"))
+        self.assertNotIn('remoções a cada', self.page.evaluate("XTerminatorFilters.describe(XTerminatorFilters.validate({}))"))
 
     def test_backoff_retries_after_the_x_refuses_to_confirm(self):
         self.options(limit=1, interval=0.1)

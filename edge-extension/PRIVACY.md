@@ -4,6 +4,11 @@ XTerminator executa localmente no navegador. Não inclui analytics, telemetria,
 servidor próprio ou envio de conteúdo para terceiros. As ações no X são feitas
 pela interface do próprio X e estão sujeitas ao processamento normal desse serviço.
 
+Para respeitar a cota por janela, a extensão guarda no navegador os horários das
+remoções recentes — apenas marcas de tempo, sem ids, textos ou destinatários. Esses
+horários ficam em `chrome.storage.local`, não saem do seu navegador e são apagados
+assim que ficam mais antigos que a janela configurada.
+
 Para detectar limites de requisição, a extensão observa o código de status HTTP das
 respostas que a própria página do X recebe. Ela não lê o corpo, os cabeçalhos ou os
 cookies dessas respostas, não as altera e não envia nada para fora do navegador.

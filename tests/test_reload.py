@@ -182,6 +182,27 @@ class ReloadTests(unittest.TestCase):
         popup.reload()
         self.assertEqual(popup.locator('#interval').input_value(), '2.75')
 
+    def inject_delete(self, **options):
+        self.worker.evaluate("""async options => {
+          const [tab] = await chrome.tabs.query({url:'https://x.com/conta_demo*'});
+          await chrome.scripting.executeScript({target:{tabId:tab.id},files:['filters.js']});
+          await chrome.scripting.executeScript({target:{tabId:tab.id},func:o => {globalThis.XTerminatorOptions=o;},args:[options]});
+          await chrome.scripting.executeScript({target:{tabId:tab.id},files:['delete.js']});
+        }""", options)
+        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
+
+    def test_window_quota_persists_between_runs(self):
+        self.fixture([['1', '2']])
+        self.inject_delete(limit=1, interval=0.1, windowLimit=1, windowSeconds=30, keyword='futebol')
+        self.wait_finished()
+        self.assertEqual(self.sent, ['1'])
+        # A segunda execução começa do zero, mas herda a cota já gasta pela primeira.
+        self.page.evaluate("() => document.getElementById('xterminator-deletion').remove()")
+        self.inject_delete(limit=1, interval=0.1, windowLimit=1, windowSeconds=30, keyword='futebol')
+        self.page.locator('#xterminator-deletion [role=status]').filter(has_text='Cota de').wait_for(timeout=15000)
+        self.assertEqual(self.sent, ['1'])
+
     def test_limit_sensor_reports_429_from_the_page(self):
         self.fixture([['30']], username='conta_sensor')
         # Rota mais recente tem prioridade sobre a genérica do fixture.

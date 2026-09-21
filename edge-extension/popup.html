@@ -9,7 +9,7 @@
 <section><div class="section-title"><span>01</span><h2>O que vamos limpar?</h2></div>
 <label>Conteúdo<select id="mode"><option value="posts">Posts próprios</option><option value="replies">Posts e respostas</option><option value="reposts">Só reposts</option><option value="both">Posts próprios e reposts</option></select></label>
 <div class="columns"><label>Quantidade máxima<input id="limit" type="number" min="1" max="1000" step="1" value="50" required></label><label>Intervalo em segundos<input id="interval" type="number" min="0.1" max="86400" step="any" value="1.5" required></label></div>
-<div class="columns"><label>Descansar a cada<input id="restEvery" type="number" min="0" max="1000" step="1" value="200"></label><label>Descanso em segundos<input id="restSeconds" type="number" min="1" max="86400" step="any" value="600" required></label></div>
+<div class="columns"><label>Máximo por janela<input id="windowLimit" type="number" min="0" max="10000" step="1" value="200"></label><label>Janela em segundos<input id="windowSeconds" type="number" min="1" max="86400" step="any" value="600" required></label></div>
 <p class="hint" id="pace">Uma ação a cada 1,5 segundos, após a confirmação do X.</p>
 </section>
 <section><div class="section-title"><span>02</span><h2>Refine a seleção</h2><small>OPCIONAL</small></div>

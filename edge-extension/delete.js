@@ -64,6 +64,34 @@
   // são tratados como excesso de ritmo, e não como falha definitiva.
   const rateLimited = error => Date.now() - limitSeenAt < 60000
     || /não confirmou a operação|erro ou limite/.test(error.message);
+  // Só horários de remoção, nunca ids ou textos. Tudo fora da janela é descartado.
+  const STORAGE_KEY = 'removalTimes';
+  const storage = globalThis.chrome?.runtime?.id ? globalThis.chrome?.storage?.local : null;
+  let stamps = [];
+  const insideWindow = list => {
+    const start = Date.now() - options.windowSeconds * 1000;
+    return list.filter(time => Number.isFinite(time) && time > start).sort((a, b) => a - b);
+  };
+  async function loadStamps() {
+    if (!storage) return;
+    try { stamps = insideWindow((await storage.get(STORAGE_KEY))[STORAGE_KEY] || []); } catch { stamps = []; }
+  }
+  async function recordRemoval() {
+    stamps = insideWindow([...stamps, Date.now()]);
+    if (!storage) return;
+    try { await storage.set({ [STORAGE_KEY]: stamps }); } catch { /* a cota segue valendo em memória */ }
+  }
+  // Espera o suficiente para a remoção mais antiga sair da janela.
+  async function waitForBudget() {
+    if (!options.windowLimit) return;
+    while (!stopped) {
+      stamps = insideWindow(stamps);
+      if (stamps.length < options.windowLimit) return;
+      const left = Math.ceil((stamps[0] + options.windowSeconds * 1000 - Date.now()) / 1000);
+      if (left <= 0) continue;
+      await countdown(left, remaining => `Cota de ${options.windowLimit} remoções por ${Math.round(options.windowSeconds / 60)} min atingida, contando execuções anteriores. Retomando em ${Math.ceil(remaining / 60)} min.`);
+    }
+  }
   async function clearOverlays() {
     document.querySelector('[data-testid="confirmationSheetCancel"]')?.click();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
@@ -123,11 +151,14 @@
         }, 30000, false);
       }
       check();
+      await loadStamps();
       await filters.selectTimeline(options, () => stopped);
       check();
       window.scrollTo(0, 0);
       await pause(1800);
       while (deleted < MAX && scans++ < 1000) {
+        check();
+        await waitForBudget();
         check();
         const previous = seen.size;
         let candidate;
@@ -225,6 +256,7 @@
           continue;
         }
         backoffs = 0;
+        await recordRemoval();
         deleted++;
         if (isRepost) undone++;
         completed.add(id);
@@ -232,11 +264,7 @@
         skipped.add(id);
         status.textContent = `${deleted}/${MAX} itens removidos: ${totals()}.`;
         if (stopped || deleted >= MAX) break;
-        // A cada restEvery itens, espera restSeconds em vez do intervalo normal.
-        const resting = options.restEvery > 0 && deleted % options.restEvery === 0;
-        await countdown(resting ? options.restSeconds : options.interval, left => resting
-          ? `${totals()}. Descanso de ${options.restSeconds} s a cada ${options.restEvery} itens. Retomando em ${left} s.`
-          : `${totals()}. Próxima ação em ${left} s.`);
+        await countdown(options.interval, left => `${totals()}. Próxima ação em ${left} s.`);
       }
       if (exhausted && !stopped && deleted < MAX && emptyReloads < 2 && reloads < 10) {
         check();

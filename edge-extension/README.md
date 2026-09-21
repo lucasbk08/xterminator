@@ -68,14 +68,16 @@ quatro recuos sem sucesso, a execução para com a mensagem do erro. O botão Pa
 observa o status HTTP das respostas do X; ele não altera, lê nem envia o conteúdo
 das requisições.
 
-**Descanso periódico:** a cada N itens removidos, a extensão espera um tempo maior
-no lugar do intervalo normal — útil para espaçar rajadas. Configure em **Descansar a
-cada** (1 a 1000 itens, ou 0 para desligar) e **Descanso em segundos** (1 a 86400).
-O padrão é **200 itens / 600 segundos**, que segue o limite observado acima: remove um
-lote inteiro e espera a janela se restabelecer, em vez de esbarrar no limite. A contagem
-é da execução atual e não considera o que foi removido em execuções anteriores.
-O painel mostra a contagem regressiva e o botão Parar continua ativo durante o
-descanso. Essa pausa reduz o ritmo, mas não garante evitar limites ou bloqueios.
+**Cota por janela:** a extensão limita quantas remoções acontecem num período,
+contando também o que foi removido em execuções anteriores. Configure em **Máximo por
+janela** (1 a 10000, ou 0 para desligar) e **Janela em segundos** (1 a 86400). O padrão
+é **200 remoções a cada 600 s**, seguindo o limite observado acima. Ao atingir a cota,
+o painel mostra quanto falta e retoma sozinho assim que a remoção mais antiga sai da
+janela; o botão Parar continua ativo nessa espera.
+
+Para isso, a extensão guarda apenas os **horários** das remoções recentes em
+`chrome.storage.local`, nunca ids ou textos. Tudo que é mais antigo que a janela é
+descartado a cada gravação, então a lista não passa do tamanho da própria cota.
 
 ## Filtros
 

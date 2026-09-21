@@ -58,12 +58,12 @@
   function validate(raw = {}) {
     const limit = Number(raw.limit ?? 50);
     const interval = Number(raw.interval ?? 1.5);
-    // Descanso periódico: 0 desliga. Serve para espaçar rajadas e aliviar os limites do X.
-    const restEvery = numberOr(raw.restEvery, 0);
-    const restSeconds = numberOr(raw.restSeconds, 60);
+    // Cota por janela deslizante: 0 desliga. Conta remoções de execuções anteriores.
+    const windowLimit = numberOr(raw.windowLimit, 0);
+    const windowSeconds = numberOr(raw.windowSeconds, 600);
     if (!Number.isFinite(interval) || interval < 0.1 || interval > 86400) throw new Error('Use um intervalo entre 0,1 e 86400 segundos.');
-    if (!Number.isInteger(restEvery) || restEvery < 0 || restEvery > 1000) throw new Error('Descanse a cada 1 a 1000 itens, ou use 0 para desligar.');
-    if (!Number.isFinite(restSeconds) || restSeconds < 1 || restSeconds > 86400) throw new Error('Use um descanso entre 1 e 86400 segundos.');
+    if (!Number.isInteger(windowLimit) || windowLimit < 0 || windowLimit > 10000) throw new Error('Use uma cota de 1 a 10000 remoções por janela, ou 0 para desligar.');
+    if (!Number.isFinite(windowSeconds) || windowSeconds < 1 || windowSeconds > 86400) throw new Error('Use uma janela entre 1 e 86400 segundos.');
     const username = String(raw.username || '').replace(/^@/, '').toLowerCase();
     if (username && !/^[a-z0-9_]{1,15}$/.test(username)) throw new Error('Usuário inválido.');
     if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new Error('Escolha uma quantidade inteira entre 1 e 1000.');
@@ -80,7 +80,7 @@
     const mode = raw.mode || 'posts';
     if (!['posts', 'reposts', 'both', 'replies'].includes(mode)) throw new Error('Tipo de remoção inválido.');
     if (keyword.length > 200) throw new Error('Use até 200 caracteres na palavra-chave.');
-    return Object.freeze({ limit, ...dates, keyword, mode, interval, restEvery, restSeconds, username });
+    return Object.freeze({ limit, ...dates, keyword, mode, interval, windowLimit, windowSeconds, username });
   }
   function read(article) {
     const time = article.querySelector('time');
@@ -112,7 +112,7 @@
   }
   function describe(options) {
     const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies' }[options.mode];
-    const rest = options.restEvery ? ` · descanso de ${options.restSeconds} s a cada ${options.restEvery} itens` : '';
+    const rest = options.windowLimit ? ` · no máximo ${options.windowLimit} remoções a cada ${options.windowSeconds} s` : '';
     return `Até ${options.limit} itens · ${type} · intervalo de ${options.interval} s${rest} · ${options.from || 'sem data inicial'} até ${options.to || 'sem data final'} (datas locais, inclusive; reposts usam a data do post original) · ${options.keyword ? `texto contendo “${options.keyword}”` : 'qualquer texto'}`;
   }
   const panelStyle = `section{background:#101318!important;color:#edf0f6!important;border:1px solid #65774b!important;border-radius:14px!important;box-shadow:0 12px 40px #0006!important;max-height:75vh;overflow:auto;font:13px system-ui!important;padding:22px!important}strong{display:block;font-size:16px;letter-spacing:-.3px}p{line-height:1.65}#summary{color:#b6c0cc;font-size:12px;padding-bottom:12px;border-bottom:1px solid #303843}input{background:#1b2028;color:#edf0f6;border:1px solid #4a5564;border-radius:7px;padding:10px!important}button{border:1px solid #46515f;border-radius:7px;background:#222a35;color:#edf0f6;font:12px system-ui;padding:10px 14px!important}#start{background:#d7ff83!important;color:#17250a!important}button:disabled{opacity:.45;cursor:not-allowed}a{color:#d7ff83}li{margin:12px 0;font-size:12px;line-height:1.6}[role=status]{padding:12px;background:#1b222b;border-radius:8px;color:#d7ff83}`;
