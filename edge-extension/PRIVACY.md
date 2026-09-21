@@ -5,7 +5,7 @@ servidor próprio ou envio de conteúdo para terceiros. As ações no X são fei
 pela interface do próprio X e estão sujeitas ao processamento normal desse serviço.
 
 Para respeitar a cota por janela, a extensão guarda no navegador os horários das
-remoções recentes — apenas marcas de tempo, sem ids, textos ou destinatários. Esses
+exclusões recentes — apenas marcas de tempo, sem ids, textos ou destinatários. Esses
 horários ficam em `chrome.storage.local`, não saem do seu navegador e são apagados
 assim que ficam mais antigos que a janela configurada.
 

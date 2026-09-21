@@ -92,7 +92,7 @@
       if (stamps.length < options.windowLimit) return;
       const left = Math.ceil((stamps[0] + options.windowSeconds * 1000 - Date.now()) / 1000);
       if (left <= 0) continue;
-      await countdown(left, remaining => `Cota de ${options.windowLimit} remoções por ${Math.round(options.windowSeconds / 60)} min atingida, contando execuções anteriores. Retomando em ${Math.ceil(remaining / 60)} min.`);
+      await countdown(left, remaining => `Cota de ${options.windowLimit} exclusões por ${Math.round(options.windowSeconds / 60)} min atingida, contando execuções anteriores. Reposts não contam. Retomando em ${Math.ceil(remaining / 60)} min.`);
     }
   }
   async function clearOverlays() {
@@ -172,8 +172,6 @@
       emptied = false;
       while (deleted < MAX && scans++ < 1000) {
         check();
-        await waitForBudget();
-        check();
         const previous = seen.size;
         let candidate;
         for (const article of document.querySelectorAll('article[data-testid="tweet"]')) {
@@ -203,6 +201,11 @@
         }
         emptyRounds = 0;
         const { article, id } = candidate;
+        // Desfazer repost não exclui nada e não entra na cota de exclusões.
+        if (!filters.read(article).repost) {
+          await waitForBudget();
+          check();
+        }
         article.scrollIntoView({ block: 'center' });
         check();
         if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) continue;
@@ -276,7 +279,7 @@
           continue;
         }
         backoffs = 0;
-        await recordRemoval();
+        if (!isRepost) await recordRemoval();
         deleted++;
         if (isRepost) undone++;
         completed.add(id);

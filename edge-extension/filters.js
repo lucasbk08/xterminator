@@ -207,7 +207,7 @@
   }
   function describe(options) {
     const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies', all: 'posts próprios, respostas e reposts' }[options.mode];
-    const rest = options.windowLimit ? ` · no máximo ${options.windowLimit} remoções a cada ${options.windowSeconds} s` : '';
+    const rest = options.windowLimit ? ` · no máximo ${options.windowLimit} exclusões a cada ${options.windowSeconds} s (reposts não contam)` : '';
     return `Até ${options.limit} itens · ${type} · intervalo de ${options.interval} s${rest} · ${options.from || 'sem data inicial'} até ${options.to || 'sem data final'} (datas locais, inclusive; reposts usam a data do post original) · ${options.keyword ? `texto contendo “${options.keyword}”` : 'qualquer texto'}`;
   }
   const panelStyle = `section{background:#101318!important;color:#edf0f6!important;border:1px solid #65774b!important;border-radius:14px!important;box-shadow:0 12px 40px #0006!important;max-height:75vh;overflow:auto;font:13px system-ui!important;padding:22px!important}strong{display:block;font-size:16px;letter-spacing:-.3px}p{line-height:1.65}#summary{color:#b6c0cc;font-size:12px;padding-bottom:12px;border-bottom:1px solid #303843}input{background:#1b2028;color:#edf0f6;border:1px solid #4a5564;border-radius:7px;padding:10px!important}button{border:1px solid #46515f;border-radius:7px;background:#222a35;color:#edf0f6;font:12px system-ui;padding:10px 14px!important}#start{background:#d7ff83!important;color:#17250a!important}button:disabled{opacity:.45;cursor:not-allowed}a{color:#d7ff83}li{margin:12px 0;font-size:12px;line-height:1.6}[role=status]{padding:12px;background:#1b222b;border-radius:8px;color:#d7ff83}`;

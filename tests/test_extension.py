@@ -1,5 +1,6 @@
 """Testes offline: .venv/bin/python -m unittest discover -s tests -v"""
 from pathlib import Path
+import time
 import unittest
 
 from playwright.sync_api import sync_playwright
@@ -268,6 +269,17 @@ class ExtensionTests(unittest.TestCase):
         # Os dois primeiros cabem na cota; o terceiro espera a janela abrir.
         self.assertLess(times[1] - times[0], 500)
         self.assertGreaterEqual(times[2] - times[0], 2000)
+
+    def test_window_quota_ignores_repost_undos(self):
+        self.options(limit=5, interval=0.1, mode='all', windowLimit=1, windowSeconds=30)
+        self.post('1')
+        self.repost('2')
+        self.dropdown('All')
+        started = time.monotonic()
+        self.assertEqual(self.run_delete(), ['1'])
+        # O post consome a cota inteira; o repost passa sem esperar a janela.
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
+        self.assertLess(time.monotonic() - started, 15)
 
     def test_window_quota_disabled_by_default(self):
         self.options(limit=2, interval=0.1)

@@ -85,8 +85,11 @@ quatro recuos sem sucesso, a execução para com a mensagem do erro. O botão Pa
 observa o status HTTP das respostas do X; ele não altera, lê nem envia o conteúdo
 das requisições.
 
-**Cota por janela:** a extensão limita quantas remoções acontecem num período,
-contando também o que foi removido em execuções anteriores. Configure em **Máximo por
+**Cota por janela:** a extensão limita quantas **exclusões** acontecem num período,
+contando também o que foi excluído em execuções anteriores. Desfazer repost não é
+exclusão e não entra nessa conta: o X parece tratar as duas ações com limites
+separados, e desfazer reposts costuma esbarrar bem mais tarde. Se ainda assim vier
+um limite, o recuo automático cuida do caso. Configure em **Máximo por
 janela** (1 a 10000, ou 0 para desligar) e **Janela em segundos** (1 a 86400). O padrão
 é **200 remoções a cada 600 s**, seguindo o limite observado acima. Ao atingir a cota,
 o painel mostra quanto falta e retoma sozinho assim que a remoção mais antiga sai da
