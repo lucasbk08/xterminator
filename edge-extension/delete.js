@@ -3,6 +3,8 @@
   const options = filters.validate(globalThis.XTerminatorOptions);
   const USERNAME = options.username || filters.profileUsername();
   const MAX = options.limit;
+  // 'all' varre a aba Respostas (posts e respostas) e depois a aba Reposts.
+  const STAGES = options.mode === 'all' ? ['replies', 'reposts'] : [options.mode];
   if (document.getElementById('xterminator-deletion')) return;
   const resume = globalThis.XTerminatorResume;
   delete globalThis.XTerminatorResume;
@@ -41,6 +43,7 @@
   let undone = resume?.undone || 0;
   let reloads = resume?.reloads || 0;
   let emptyReloads = resume?.emptyReloads || 0;
+  let stageIndex = Math.min(Math.max(resume?.stageIndex || 0, 0), STAGES.length - 1);
   const completed = new Set(resume?.completed || []);
   let reloading = false;
   const totals = () => `${deleted - undone} posts excluídos e ${undone} reposts desfeitos`;
@@ -134,13 +137,10 @@
     start.disabled = true;
     input.disabled = true;
     stop.textContent = 'Parar';
-    const skipped = new Set(completed);
-    const seen = new Set();
-    let emptyRounds = 0;
-    let scans = 0;
     let menuOpen = false;
     let confirmation = null;
     let exhausted = false;
+    let emptied = false;
     try {
       if (resume) {
         status.textContent = `Página recarregada. Conferindo login e lista… ${totals()}.`;
@@ -152,10 +152,19 @@
       }
       check();
       await loadStamps();
-      await filters.selectTimeline(options, () => stopped);
+      for (;;) {
+      const stage = filters.validate({ ...options, mode: STAGES[stageIndex] });
+      await filters.selectTimeline(stage, () => stopped);
       check();
       window.scrollTo(0, 0);
       await pause(1800);
+      const seen = new Set();
+      // Por aba: o que não serve aqui pode servir na próxima; já removidos nunca voltam.
+      const skipped = new Set(completed);
+      let emptyRounds = 0;
+      let scans = 0;
+      exhausted = false;
+      emptied = false;
       while (deleted < MAX && scans++ < 1000) {
         check();
         await waitForBudget();
@@ -166,7 +175,7 @@
           const match = post(article);
           if (!match || skipped.has(match[2])) continue;
           seen.add(match[2]);
-          if (!filters.matches(filters.read(article), options)) {
+          if (!filters.matches(filters.read(article), stage)) {
             skipped.add(match[2]);
             continue;
           }
@@ -174,6 +183,12 @@
           break;
         }
         if (!candidate) {
+          // O X exibe um aviso próprio quando a aba não tem mais nenhum item.
+          if (!document.querySelector('article[data-testid="tweet"]') && [...document.querySelectorAll('[data-testid*="empty" i]')].some(visible)) {
+            exhausted = true;
+            emptied = true;
+            break;
+          }
           emptyRounds = seen.size === previous ? emptyRounds + 1 : 0;
           if (emptyRounds >= 8) { exhausted = true; break; }
           status.textContent = `${deleted}/${MAX} itens removidos. Procurando correspondências… ${seen.size} examinados.`;
@@ -185,7 +200,7 @@
         const { article, id } = candidate;
         article.scrollIntoView({ block: 'center' });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) continue;
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) continue;
         const isRepost = filters.read(article).repost;
         const caret = isRepost ? filters.undoButton(article) : article.querySelector('[data-testid="caret"]');
         if (!caret) throw new Error('Botão da ação selecionada não encontrado.');
@@ -206,7 +221,7 @@
             .find(el => visible(el) && actionName.test(el.textContent.trim()));
         });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O item mudou antes da ação.');
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O item mudou antes da ação.');
         item.click();
         menuOpen = false;
         if (!isRepost) {
@@ -215,7 +230,7 @@
           return visible(el) && /^(Delete|Excluir|Apagar)$/i.test(el.textContent.trim()) ? el : null;
         });
         check();
-        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O post mudou antes da confirmação.');
+        if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O post mudou antes da confirmação.');
         confirmation.click();
         confirmation = null;
         }
@@ -232,7 +247,7 @@
               confirmation = sheet;
               check();
               if (!actionName.test(sheet.textContent.trim())) throw new Error('Confirmação de repost não reconhecida.');
-              if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), options)) throw new Error('O repost mudou antes da confirmação.');
+              if (!article.isConnected || post(article)?.[2] !== id || !filters.matches(filters.read(article), stage)) throw new Error('O repost mudou antes da confirmação.');
               sheet.click();
               confirmation = null;
               return false;
@@ -266,7 +281,9 @@
         if (stopped || deleted >= MAX) break;
         await countdown(options.interval, left => `${totals()}. Próxima ação em ${left} s.`);
       }
-      if (exhausted && !stopped && deleted < MAX && emptyReloads < 2 && reloads < 10) {
+      if (!exhausted || stopped || deleted >= MAX) break;
+      // Só recarrega quando a lista travou; com a aba vazia, não há o que esperar.
+      if (!emptied && emptyReloads < 2 && reloads < 10) {
         check();
         const error = [...document.querySelectorAll('[role="alert"]')].find(el => visible(el) && /error|erro|try again|tente novamente|limit/i.test(el.textContent));
         if (error) throw new Error('O X mostrou um erro ou limite. A execução foi encerrada sem recarregar.');
@@ -276,14 +293,17 @@
           check();
           reloading = true;
           const response = await chrome.runtime.sendMessage({ type: 'reload-deletion', state: {
-            options, deleted, undone, completed: [...completed], reloads: reloads + 1, emptyReloads: emptyReloads + 1,
+            options, stageIndex, deleted, undone, completed: [...completed], reloads: reloads + 1, emptyReloads: emptyReloads + 1,
           } });
           if (!response?.ok) { reloading = false; throw new Error(response?.error || 'Não foi possível recarregar.'); }
           return;
         }
       }
-      const reason = emptyReloads >= 2 ? 'Duas recargas seguidas sem progresso.' : reloads >= 10 ? 'Limite de 10 recargas atingido.' : 'Busca encerrada nos trechos carregados.';
-      status.textContent = `${stopped ? 'Interrompido' : 'Concluído'}: ${totals()}. ${deleted < MAX && !stopped ? `${reason} Pode haver outros itens no histórico.` : ''}`;
+      if (stageIndex + 1 < STAGES.length) { stageIndex++; emptyReloads = 0; continue; }
+      break;
+      }
+      const reason = emptied ? 'A aba não tem mais itens.' : emptyReloads >= 2 ? 'Duas recargas seguidas sem progresso.' : reloads >= 10 ? 'Limite de 10 recargas atingido.' : 'Busca encerrada nos trechos carregados.';
+      status.textContent = `${stopped ? 'Interrompido' : 'Concluído'}: ${totals()}. ${deleted < MAX && !stopped ? `${reason}${emptied ? '' : ' Pode haver outros itens no histórico.'}` : ''}`;
     } catch (error) {
       status.textContent = `${totals()}. ${error.message}`;
     } finally {

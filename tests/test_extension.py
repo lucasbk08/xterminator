@@ -284,6 +284,35 @@ class ExtensionTests(unittest.TestCase):
         self.assertLess(times[1] - times[0], 500)
         self.assertNotIn('remoções a cada', self.page.evaluate("XTerminatorFilters.describe(XTerminatorFilters.validate({}))"))
 
+    def test_all_mode_moves_from_replies_to_reposts(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2')
+        self.page.evaluate("""() => {
+          const tabs = document.createElement('div');
+          tabs.innerHTML = '<div role="tab" aria-selected="true">Replies</div><div role="tab" aria-selected="false">Reposts</div>';
+          tabs.lastChild.onclick = () => {
+            tabs.firstChild.setAttribute('aria-selected', 'false');
+            tabs.lastChild.setAttribute('aria-selected', 'true');
+          };
+          document.body.prepend(tabs);
+        }""")
+        self.assertEqual(self.run_delete(), ['1'])
+        self.assertEqual(self.page.evaluate('undone'), 1)
+        self.assertEqual(self.page.evaluate("document.querySelectorAll('[role=tab][aria-selected=true]')[0].textContent"), 'Reposts')
+
+    def test_empty_tab_finishes_without_reloading(self):
+        self.options(limit=5, interval=0.1)
+        self.page.evaluate("""() => {
+          const empty = document.createElement('div');
+          empty.dataset.testid = 'emptyState';
+          empty.textContent = "You haven't posted yet";
+          document.body.append(empty);
+        }""")
+        self.assertEqual(self.run_delete(), [])
+        self.assertIn('A aba não tem mais itens', self.page.locator('#xterminator-deletion [role=status]').inner_text())
+        self.assertNotIn('Pode haver outros itens', self.page.locator('#xterminator-deletion [role=status]').inner_text())
+
     def test_backoff_retries_after_the_x_refuses_to_confirm(self):
         self.options(limit=1, interval=0.1)
         self.post('1')

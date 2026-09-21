@@ -149,6 +149,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       const state = message.state;
       if (!state || !Number.isInteger(state.deleted) || state.deleted < 0 ||
           !Number.isInteger(state.undone) || state.undone < 0 || state.undone > state.deleted ||
+          !Number.isInteger(state.stageIndex) || state.stageIndex < 0 || state.stageIndex > 4 ||
           !Number.isInteger(state.reloads) || state.reloads < 1 || state.reloads > 10 ||
           !Number.isInteger(state.emptyReloads) || state.emptyReloads < 0 || state.emptyReloads > 2 ||
           !Array.isArray(state.completed) || state.completed.length !== state.deleted ||

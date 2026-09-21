@@ -78,7 +78,7 @@
     if (dates.from && dates.to && dates.from > dates.to) throw new Error('A data inicial deve ser anterior ou igual à final.');
     const keyword = String(raw.keyword || '').trim();
     const mode = raw.mode || 'posts';
-    if (!['posts', 'reposts', 'both', 'replies'].includes(mode)) throw new Error('Tipo de remoção inválido.');
+    if (!['posts', 'reposts', 'both', 'replies', 'all'].includes(mode)) throw new Error('Tipo de remoção inválido.');
     if (keyword.length > 200) throw new Error('Use até 200 caracteres na palavra-chave.');
     return Object.freeze({ limit, ...dates, keyword, mode, interval, windowLimit, windowSeconds, username });
   }
@@ -111,7 +111,7 @@
     return !options.keyword || post.text.toLocaleLowerCase('pt-BR').includes(options.keyword.toLocaleLowerCase('pt-BR'));
   }
   function describe(options) {
-    const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies' }[options.mode];
+    const type = { posts: 'posts próprios', reposts: 'reposts', both: 'posts próprios e reposts', replies: 'posts próprios e respostas na aba Replies', all: 'tudo: aba Replies e depois aba Reposts' }[options.mode];
     const rest = options.windowLimit ? ` · no máximo ${options.windowLimit} remoções a cada ${options.windowSeconds} s` : '';
     return `Até ${options.limit} itens · ${type} · intervalo de ${options.interval} s${rest} · ${options.from || 'sem data inicial'} até ${options.to || 'sem data final'} (datas locais, inclusive; reposts usam a data do post original) · ${options.keyword ? `texto contendo “${options.keyword}”` : 'qualquer texto'}`;
   }

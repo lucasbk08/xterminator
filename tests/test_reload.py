@@ -46,7 +46,7 @@ class ReloadTests(unittest.TestCase):
             except Exception:
                 pass
 
-    def fixture(self, pages, wrong_account_after=False, username='conta_demo', sidebar=False, hold_load=False):
+    def fixture(self, pages, wrong_account_after=False, username='conta_demo', sidebar=False, hold_load=False, empty_state=False):
         def route(request):
             if request.request.url.startswith('chrome-extension://'):
                 request.continue_()
@@ -63,6 +63,8 @@ class ReloadTests(unittest.TestCase):
             body = f'<header><nav><a href="/explore">Explore</a><a href="/{account}"><div><span>Profile</span></div></a></nav></header>' if sidebar else f'<a data-testid="AppTabBar_Profile_Link" href="/{account}">Perfil</a>'
             if hold_load:
                 body += '<img src="https://x.com/keep-loading">'
+            if empty_state:
+                body += '<div data-testid="emptyState">You haven\'t posted yet</div>'
             for id in pages[index]:
                 body += f'<article data-testid="tweet"><a href="/{username}/status/{id}"><time datetime="2023-01-02T12:00:00Z">Hoje</time></a><div data-testid="tweetText">futebol</div><button data-testid="caret">Menu</button></article>'
             body += '''<script>
@@ -191,6 +193,15 @@ class ReloadTests(unittest.TestCase):
         }""", options)
         self.page.locator('#xterminator-deletion input').fill('APAGAR')
         self.page.locator('#start').click()
+
+    def test_empty_state_stops_without_reloading(self):
+        self.fixture([[]], empty_state=True)
+        self.start()
+        self.wait_finished()
+        # Sem o aviso do X seriam três carregamentos: duas recargas inúteis.
+        self.assertEqual(self.loads, 1)
+        self.assertEqual(self.sent, [])
+        self.assertIn('A aba não tem mais itens', self.page.locator('[role=status]').inner_text())
 
     def test_window_quota_persists_between_runs(self):
         self.fixture([['1', '2']])

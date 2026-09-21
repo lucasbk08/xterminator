@@ -47,6 +47,13 @@ pare e feche esse painel antes de iniciar outra.
 - **Só reposts:** seleciona Reposts quando disponível e desfaz reposts ativos.
 - **Posts próprios e reposts:** processa ambos na aba principal; não percorre
   automaticamente todas as abas.
+- **Tudo (respostas e depois reposts):** varre a aba Replies e, ao esgotá-la, passa
+  para a aba Reposts na mesma execução.
+
+Em **Tudo (respostas e depois reposts)**, a execução varre a aba Replies e, quando
+ela acaba, passa sozinha para a aba Reposts, mantendo o limite e a cota da execução.
+Quando o X mostra o aviso de aba vazia, a extensão encerra na hora, sem recarregar
+a página para conferir.
 
 O limite (1 a 1000) é compartilhado entre todas as ações da execução. O intervalo
 aceita decimais, entre 0,1 e 86400 segundos (padrão: 1,5). A espera começa após a
