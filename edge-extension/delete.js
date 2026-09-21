@@ -45,8 +45,9 @@
   let reloading = false;
   const totals = () => `${deleted - undone} posts excluídos e ${undone} reposts desfeitos`;
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-  // Recuos crescentes, em segundos, quando o X responde 429 ou recusa a operação.
-  const BACKOFFS = [300, 600, 1200, 1800];
+  // Medido na prática: o X libera cerca de 200 remoções e volta a aceitar após
+  // ~10 minutos, independente do intervalo entre elas. Por isso o recuo é fixo.
+  const BACKOFFS = [600, 600, 600, 600];
   let limitSeenAt = 0;
   let backoffs = 0;
   document.addEventListener('xterminator-http-limit', () => { limitSeenAt = Date.now(); });

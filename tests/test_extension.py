@@ -308,7 +308,7 @@ class ExtensionTests(unittest.TestCase):
             document.body.append(menu);
           };
         }""")
-        source = (ROOT / 'delete.js').read_text().replace('[300, 600, 1200, 1800]', '[1, 1, 1, 1]').replace('}, 12000, false);', '}, 400, false);')
+        source = (ROOT / 'delete.js').read_text().replace('[600, 600, 600, 600]', '[1, 1, 1, 1]').replace('}, 12000, false);', '}, 400, false);')
         self.page.evaluate(source)
         self.page.locator('#xterminator-deletion input').fill('APAGAR')
         self.page.locator('#start').click()
@@ -336,7 +336,7 @@ class ExtensionTests(unittest.TestCase):
             document.body.append(menu);
           };
         }""")
-        source = (ROOT / 'delete.js').read_text().replace('[300, 600, 1200, 1800]', '[1, 1]').replace('}, 12000, false);', '}, 300, false);')
+        source = (ROOT / 'delete.js').read_text().replace('[600, 600, 600, 600]', '[1, 1]').replace('}, 12000, false);', '}, 300, false);')
         self.page.evaluate(source)
         self.page.locator('#xterminator-deletion input').fill('APAGAR')
         self.page.locator('#start').click()

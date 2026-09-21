@@ -51,20 +51,29 @@ pare e feche esse painel antes de iniciar outra.
 O limite (1 a 1000) é compartilhado entre todas as ações da execução. O intervalo
 aceita decimais, entre 0,1 e 86400 segundos (padrão: 1,5). A espera começa após a
 confirmação da operação pelo X. O tempo real inclui o carregamento e as verificações.
-O botão Parar funciona durante a espera. Intervalos curtos podem atingir rate limits;
-nenhum intervalo garante evitá-los.
+O botão Parar funciona durante a espera.
+
+**Limite observado do X:** em testes nesta extensão, a conta aceitou cerca de
+**200 remoções** e passou a recusar as seguintes por aproximadamente **10 minutos**,
+independentemente do intervalo entre elas — 0,5 s e 2 s deram o mesmo resultado. O
+consumo é acumulado entre execuções: fechar o painel e recomeçar não zera a contagem.
+Esse número não é publicado pelo X, veio de medições limitadas e pode mudar ou variar
+por conta. Diminuir o intervalo não aumenta o total permitido, só o alcança mais cedo.
 
 **Recuo automático:** se o X responder **429** (limite de requisições), mostrar um
 aviso de limite ou não confirmar a operação, a extensão não encerra: ela fecha o que
-estiver aberto, espera 5, 10, 20 e 30 minutos em recuos sucessivos e tenta o mesmo
-item de novo. Depois de quatro recuos sem sucesso, a execução para com a mensagem do
-erro. O botão Parar continua ativo durante o recuo. Um sensor injetado na página
+estiver aberto, espera **10 minutos** e tenta o mesmo item de novo, até quatro vezes.
+A espera é fixa porque o limite do X parece se restabelecer nesse intervalo. Depois de
+quatro recuos sem sucesso, a execução para com a mensagem do erro. O botão Parar continua ativo durante o recuo. Um sensor injetado na página
 observa o status HTTP das respostas do X; ele não altera, lê nem envia o conteúdo
 das requisições.
 
 **Descanso periódico:** a cada N itens removidos, a extensão espera um tempo maior
 no lugar do intervalo normal — útil para espaçar rajadas. Configure em **Descansar a
 cada** (1 a 1000 itens, ou 0 para desligar) e **Descanso em segundos** (1 a 86400).
+O padrão é **200 itens / 600 segundos**, que segue o limite observado acima: remove um
+lote inteiro e espera a janela se restabelecer, em vez de esbarrar no limite. A contagem
+é da execução atual e não considera o que foi removido em execuções anteriores.
 O painel mostra a contagem regressiva e o botão Parar continua ativo durante o
 descanso. Essa pausa reduz o ritmo, mas não garante evitar limites ou bloqueios.
 
