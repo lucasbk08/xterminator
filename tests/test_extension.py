@@ -356,6 +356,50 @@ class ExtensionTests(unittest.TestCase):
                 result = self.page.evaluate("url => XTerminatorFilters.isProfile(url, 'conta_demo')", url)
                 self.assertEqual(result, expected)
 
+    def test_posts_tab_is_opened_before_reaching_all(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2')
+        # Começa em Reposts: o menu com All só existe na aba Posts.
+        self.page.evaluate("""() => {
+          const list = document.createElement('div');
+          list.setAttribute('role', 'tablist');
+          const tabs = { Posts: '/conta_demo', Replies: '/conta_demo/with_replies', Reposts: '/conta_demo/reposts', Media: '/conta_demo/media' };
+          for (const [name, href] of Object.entries(tabs)) {
+            const tab = document.createElement('a');
+            tab.setAttribute('href', href);
+            tab.setAttribute('aria-selected', name === 'Reposts' ? 'true' : 'false');
+            tab.textContent = name;
+            tab.onclick = event => {
+              event.preventDefault();
+              if (tab.getAttribute('aria-selected') !== 'true') {
+                [...list.children].forEach(el => el.setAttribute('aria-selected', 'false'));
+                tab.setAttribute('aria-selected', 'true');
+                return;
+              }
+              if (name !== 'Posts') return;
+              window.menuOpened = (window.menuOpened || 0) + 1;
+              const menu = document.createElement('div');
+              menu.setAttribute('role', 'menu');
+              for (const option of ['All', 'Posts', 'Highlights']) {
+                const item = document.createElement('div');
+                item.setAttribute('role', 'menuitem');
+                item.textContent = option;
+                item.onclick = () => { tab.textContent = option; menu.remove(); };
+                menu.append(item);
+              }
+              document.body.append(menu);
+            };
+            list.append(tab);
+          }
+          document.body.prepend(list);
+        }""")
+        self.assertEqual(self.run_delete(), ['1'])
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
+        self.assertEqual(self.page.evaluate('window.menuOpened || 0'), 1)
+        selected = self.page.evaluate("document.querySelector('[role=tablist] [aria-selected=true]').textContent")
+        self.assertEqual(selected, 'All')
+
     def test_all_tab_is_preferred_over_sweeping_tabs(self):
         self.options(limit=5, interval=0.1, mode='all')
         self.post('1')

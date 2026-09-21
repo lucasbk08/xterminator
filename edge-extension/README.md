@@ -50,6 +50,10 @@ O perfil pode ter uma aba **All**, que reúne posts, respostas e reposts numa li
 só, no endereço `x.com/usuario/all`. Quando ela existe, o modo Tudo usa essa aba e
 não precisa percorrer as outras — a aba Reposts nem sempre traz tudo.
 
+Essa opção fica dentro do menu da aba **Posts**, e não aparece a partir de Replies,
+Reposts ou Media. Se a execução começar em outra aba, a extensão ativa Posts antes,
+abre o menu e escolhe All.
+
 O X tem outras formas de organizar o perfil, e a extensão lida com elas. Na
 interface com **menu suspenso** (All / Posts / Highlights), ela escolhe *All* para
 limpar tudo, ou *Posts* no modo Só posts próprios, e os filtros separam o resto. Na

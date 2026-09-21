@@ -33,8 +33,60 @@
       && (ALL_NAME.test(el.textContent.trim()) || POSTS_NAME.test(el.textContent.trim()) || /^(highlights|destaques)$/i.test(el.textContent.trim()))
       && (el.getAttribute('aria-haspopup') === 'menu' || el.hasAttribute('aria-expanded')));
   }
-  async function selectFromDropdown(wanted, cancelled) {
-    const trigger = timelineTrigger();
+  async function waitUntil(condition, ms, cancelled) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (cancelled()) throw new Error('Parado pelo usuário.');
+      if (condition()) return true;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return false;
+  }
+  function tabHref(el) {
+    const anchor = el.matches('a') ? el : el.closest('a') || el.querySelector('a');
+    try { return anchor ? new URL(anchor.getAttribute('href'), location.href).pathname : ''; } catch { return ''; }
+  }
+  // Itens da barra de abas do perfil, localizada pela aba que aponta para Replies,
+  // Reposts ou All. Evita confundir com a navegação lateral do site.
+  function profileTabItems() {
+    const anchors = [...document.querySelectorAll('[role="tab"], nav a, [role="tablist"] a')];
+    const sibling = /^(replies|respostas|reposts|retweets|republicações|all|tudo|todos)$/i;
+    const marker = anchors.find(el => /\/(with_replies|reposts|retweets|all)\/?$/i.test(tabHref(el))
+      || sibling.test((el.textContent || '').trim()));
+    const scope = marker && (marker.closest('[role="tablist"]') || marker.closest('nav'));
+    return scope ? [...scope.querySelectorAll('[role="tab"], a')].filter(shown) : [];
+  }
+  const ON_ALL = () => /\/all\/?$/i.test(location.pathname);
+  // A opção All vive no menu da aba Posts: sem ela ativa, o menu não oferece All.
+  async function selectAllTimeline(options, cancelled) {
+    const items = profileTabItems();
+    if (!items.length) return await selectFromDropdown(ALL_NAME, cancelled);
+    const named = el => (el.textContent || '').trim();
+    const isAll = el => ALL_NAME.test(named(el)) || /\/all\/?$/i.test(tabHref(el));
+    const user = (options.username || profileUsername() || '').toLowerCase();
+    const root = new RegExp(`^/${user || '[a-z0-9_]{1,15}'}/?$`, 'i');
+    // Quando a barra marca a aba ativa, ela manda; sem isso, resta o endereço.
+    const marked = items.some(el => el.hasAttribute('aria-selected'));
+    const active = el => marked ? el.getAttribute('aria-selected') === 'true' : root.test(location.pathname);
+    if (ON_ALL() || items.some(el => isAll(el) && active(el))) return true;
+    const allTab = items.find(isAll);
+    if (allTab) {
+      allTab.click();
+      if (!await waitUntil(() => ON_ALL() || active(allTab), 15000, cancelled)) return false;
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      return true;
+    }
+    const postsTab = items.find(el => root.test(tabHref(el))) || items.find(el => POSTS_NAME.test(named(el)));
+    if (!postsTab) return await selectFromDropdown(ALL_NAME, cancelled);
+    if (!active(postsTab)) {
+      postsTab.click();
+      if (!await waitUntil(() => active(postsTab), 15000, cancelled)) return false;
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+    return await selectFromDropdown(ALL_NAME, cancelled, postsTab);
+  }
+  async function selectFromDropdown(wanted, cancelled, explicit = null) {
+    const trigger = explicit && shown(explicit) ? explicit : timelineTrigger();
     if (!trigger) return false;
     if (wanted.test(trigger.textContent.trim())) return true;
     trigger.click();
@@ -58,21 +110,17 @@
   }
   // A aba All lista posts e reposts juntos; a aba Reposts nem sempre traz tudo.
   const TARGETS = {
-    all: { name: ALL_NAME, path: /\/all\/?$/i, label: 'All / Tudo' },
     replies: { name: /^(replies|respostas|posts e respostas)$/i, path: /\/with_replies\/?$/i, label: 'Replies / Respostas' },
     reposts: { name: /^(reposts|retweets|republicações)$/i, path: /\/(reposts|retweets)\/?$/i, label: 'Reposts' },
   };
   async function selectTimeline(options, target = options.mode, cancelled = () => false) {
     if (cancelled()) throw new Error('Parado pelo usuário.');
+    if (target === 'all') return await selectAllTimeline(options, cancelled) ? 'all' : 'none';
     const wanted = TARGETS[target];
     // Sem aba própria (modo 'posts'): resta o menu suspenso da interface nova.
     if (!wanted) return await selectFromDropdown(POSTS_NAME, cancelled) ? 'all' : 'none';
     const { name, path, label } = wanted;
     // A aba pode vir só com ícone, sem texto: o endereço identifica melhor que o rótulo.
-    const tabHref = el => {
-      const anchor = el.matches('a') ? el : el.closest('a') || el.querySelector('a');
-      try { return anchor ? new URL(anchor.getAttribute('href'), location.href).pathname : ''; } catch { return ''; }
-    };
     const identifies = el => [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
       .some(text => text && name.test(text.trim())) || (!!path && path.test(tabHref(el)));
     const tab = [...document.querySelectorAll('[role="tab"], nav a, [role="tablist"] a')].find(identifies);
