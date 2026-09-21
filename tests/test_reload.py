@@ -182,6 +182,29 @@ class ReloadTests(unittest.TestCase):
         popup.reload()
         self.assertEqual(popup.locator('#interval').input_value(), '2.75')
 
+    def test_limit_sensor_reports_429_from_the_page(self):
+        self.fixture([['30']], username='conta_sensor')
+        # Rota mais recente tem prioridade sobre a genérica do fixture.
+        self.context.route('**/limite-429', lambda route: route.fulfill(status=429, body=''))
+        self.page.close()
+        popup = self.context.new_page()
+        popup.goto(f"chrome-extension://{self.worker.url.split('/')[2]}/popup.html")
+        popup.locator('#limit').fill('1')
+        with self.context.expect_page() as created:
+            popup.locator('#delete').click()
+        target = created.value
+        target.wait_for_url('https://x.com/conta_sensor')
+        target.locator('#xterminator-deletion input').wait_for()
+        target.wait_for_function('window.__xterminatorLimitSensor === true')
+        fired = target.evaluate("""() => new Promise(resolve => {
+          document.addEventListener('xterminator-http-limit', () => resolve(true), { once: true });
+          setTimeout(() => resolve(false), 5000);
+          fetch('/limite-429');
+        })""")
+        self.assertTrue(fired)
+        # O sensor só observa: nada foi excluído sem confirmação.
+        self.assertEqual(self.sent, [])
+
     def test_popup_launches_preview_without_confirmation_or_deletion(self):
         self.fixture([['11']], username='perfil_teste')
         self.page.close()

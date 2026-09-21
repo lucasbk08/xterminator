@@ -45,6 +45,29 @@
   let reloading = false;
   const totals = () => `${deleted - undone} posts excluídos e ${undone} reposts desfeitos`;
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+  // Recuos crescentes, em segundos, quando o X responde 429 ou recusa a operação.
+  const BACKOFFS = [300, 600, 1200, 1800];
+  let limitSeenAt = 0;
+  let backoffs = 0;
+  document.addEventListener('xterminator-http-limit', () => { limitSeenAt = Date.now(); });
+  // O sensor de respostas 429 roda no mundo da página; a injeção parte do service worker.
+  if (globalThis.chrome?.runtime?.id) void chrome.runtime.sendMessage({ type: 'watch-limits' }).catch(() => {});
+  async function countdown(seconds, describe) {
+    const until = Date.now() + seconds * 1000;
+    while (Date.now() < until && !stopped) {
+      status.textContent = describe(Math.ceil((until - Date.now()) / 1000));
+      await pause(Math.min(250, until - Date.now()));
+    }
+  }
+  // Um 429 recente, um aviso de limite na tela ou a ausência de confirmação
+  // são tratados como excesso de ritmo, e não como falha definitiva.
+  const rateLimited = error => Date.now() - limitSeenAt < 60000
+    || /não confirmou a operação|erro ou limite/.test(error.message);
+  async function clearOverlays() {
+    document.querySelector('[data-testid="confirmationSheetCancel"]')?.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    await pause(500);
+  }
   const visible = el => el && el.getClientRects().length > 0;
   const currentProfile = () => filters.isProfile(location.href, USERNAME);
   function check() {
@@ -166,6 +189,7 @@
         }
         status.textContent = `Aguardando confirmação do X… ${deleted}/${MAX} itens removidos.`;
         // Depois do envio, aguarda o resultado mesmo se Parar for clicado.
+        try {
         await waitFor(() => {
           if (!currentProfile()) throw new Error('A página mudou; não foi possível confirmar a última exclusão.');
           const error = [...document.querySelectorAll('[role="alert"]')].find(el => visible(el) && /error|erro|try again|tente novamente|limit/i.test(el.textContent));
@@ -186,6 +210,20 @@
           const removed = remaining.length === 0 || (isRepost && remaining.every(el => !filters.undoButton(el) && el.querySelector('[data-testid="retweet"]')));
           return removed && !visible(document.querySelector('[data-testid="confirmationSheetConfirm"]'));
         }, 12000, false);
+        } catch (error) {
+          if (stopped || !rateLimited(error) || backoffs >= BACKOFFS.length) throw error;
+          const seconds = BACKOFFS[backoffs++];
+          confirmation = null;
+          menuOpen = false;
+          await clearOverlays();
+          await countdown(seconds, left => `Limite do X atingido após ${totals()}. Recuo ${backoffs}/${BACKOFFS.length}: tentando de novo em ${Math.ceil(left / 60)} min.`);
+          if (stopped) throw error;
+          limitSeenAt = 0;
+          // O item não foi removido: volta para a varredura e é tentado outra vez.
+          seen.delete(id);
+          continue;
+        }
+        backoffs = 0;
         deleted++;
         if (isRepost) undone++;
         completed.add(id);
@@ -195,14 +233,9 @@
         if (stopped || deleted >= MAX) break;
         // A cada restEvery itens, espera restSeconds em vez do intervalo normal.
         const resting = options.restEvery > 0 && deleted % options.restEvery === 0;
-        const nextAction = Date.now() + (resting ? options.restSeconds : options.interval) * 1000;
-        while (Date.now() < nextAction && !stopped) {
-          const seconds = Math.ceil((nextAction - Date.now()) / 1000);
-          status.textContent = resting
-            ? `${totals()}. Descanso de ${options.restSeconds} s a cada ${options.restEvery} itens. Retomando em ${seconds} s.`
-            : `${totals()}. Próxima ação em ${seconds} s.`;
-          await pause(Math.min(250, nextAction - Date.now()));
-        }
+        await countdown(resting ? options.restSeconds : options.interval, left => resting
+          ? `${totals()}. Descanso de ${options.restSeconds} s a cada ${options.restEvery} itens. Retomando em ${left} s.`
+          : `${totals()}. Próxima ação em ${left} s.`);
       }
       if (exhausted && !stopped && deleted < MAX && emptyReloads < 2 && reloads < 10) {
         check();

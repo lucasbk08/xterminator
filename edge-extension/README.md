@@ -54,6 +54,14 @@ confirmação da operação pelo X. O tempo real inclui o carregamento e as veri
 O botão Parar funciona durante a espera. Intervalos curtos podem atingir rate limits;
 nenhum intervalo garante evitá-los.
 
+**Recuo automático:** se o X responder **429** (limite de requisições), mostrar um
+aviso de limite ou não confirmar a operação, a extensão não encerra: ela fecha o que
+estiver aberto, espera 5, 10, 20 e 30 minutos em recuos sucessivos e tenta o mesmo
+item de novo. Depois de quatro recuos sem sucesso, a execução para com a mensagem do
+erro. O botão Parar continua ativo durante o recuo. Um sensor injetado na página
+observa o status HTTP das respostas do X; ele não altera, lê nem envia o conteúdo
+das requisições.
+
 **Descanso periódico:** a cada N itens removidos, a extensão espera um tempo maior
 no lugar do intervalo normal — útil para espaçar rajadas. Configure em **Descansar a
 cada** (1 a 1000 itens, ou 0 para desligar) e **Descanso em segundos** (1 a 86400).

@@ -4,6 +4,10 @@ XTerminator executa localmente no navegador. Não inclui analytics, telemetria,
 servidor próprio ou envio de conteúdo para terceiros. As ações no X são feitas
 pela interface do próprio X e estão sujeitas ao processamento normal desse serviço.
 
+Para detectar limites de requisição, a extensão observa o código de status HTTP das
+respostas que a própria página do X recebe. Ela não lê o corpo, os cabeçalhos ou os
+cookies dessas respostas, não as altera e não envia nada para fora do navegador.
+
 A extensão lê o identificador da conta conectada e os posts visíveis para aplicar
 os filtros. Ela não lê senhas nem usa APIs para extrair cookies. As opções ficam
 no armazenamento local da extensão. IDs de itens processados, contagens e usuário

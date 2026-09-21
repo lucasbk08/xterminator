@@ -57,6 +57,28 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     advanceLaunch(sender.tab.id, sender.url).then(() => reply({ ok: true }), error => reply({ ok: false, error: error.message }));
     return true;
   }
+  // Observa respostas 429 do X no mundo da página, sem alterar o que é enviado.
+  if (message.type === 'watch-limits' && sender.tab && sender.frameId === 0 && isProfile(sender.url)) {
+    chrome.scripting.executeScript({
+      target: { tabId: sender.tab.id, documentIds: [sender.documentId] }, world: 'MAIN', func: () => {
+        if (globalThis.__xterminatorLimitSensor) return;
+        globalThis.__xterminatorLimitSensor = true;
+        const notify = status => {
+          if (status === 429) document.dispatchEvent(new CustomEvent('xterminator-http-limit'));
+        };
+        const original = globalThis.fetch;
+        globalThis.fetch = function (...args) {
+          return original.apply(this, args).then(response => { notify(response.status); return response; });
+        };
+        const open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (...args) {
+          this.addEventListener('load', () => notify(this.status));
+          return open.apply(this, args);
+        };
+      },
+    }).then(() => reply({ ok: true }), error => reply({ ok: false, error: error.message }));
+    return true;
+  }
   if (message.type === 'cancel-launch' && sender.tab && sender.frameId === 0) {
     chrome.storage.session.remove(launchKey(sender.tab.id)).then(() => reply({ ok: true }));
     return true;

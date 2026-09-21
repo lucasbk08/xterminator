@@ -284,6 +284,68 @@ class ExtensionTests(unittest.TestCase):
         self.assertLess(times[1] - times[0], 500)
         self.assertNotIn('descanso', self.page.evaluate("XTerminatorFilters.describe(XTerminatorFilters.validate({}))"))
 
+    def test_backoff_retries_after_the_x_refuses_to_confirm(self):
+        self.options(limit=1, interval=0.1)
+        self.post('1')
+        # A primeira confirmação não remove o post, como acontece sob 429.
+        self.page.evaluate("""() => {
+          window.attempts = 0;
+          const article = document.querySelector('article');
+          const id = article.querySelector('a').getAttribute('href').split('/').pop();
+          article.querySelector('[data-testid=caret]').onclick = () => {
+            const menu = document.createElement('div'); menu.setAttribute('role','menu');
+            menu.innerHTML = '<button role="menuitem">Excluir</button>';
+            menu.firstChild.onclick = () => {
+              menu.remove();
+              const confirm = document.createElement('button');
+              confirm.dataset.testid = 'confirmationSheetConfirm'; confirm.textContent = 'Excluir';
+              confirm.onclick = () => {
+                confirm.remove();
+                if (++window.attempts >= 2) { window.sent.push(id); article.remove(); }
+              };
+              document.body.append(confirm);
+            };
+            document.body.append(menu);
+          };
+        }""")
+        source = (ROOT / 'delete.js').read_text().replace('[300, 600, 1200, 1800]', '[1, 1, 1, 1]').replace('}, 12000, false);', '}, 400, false);')
+        self.page.evaluate(source)
+        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
+        self.page.wait_for_function("document.querySelector('#xterminator-deletion').shadowRoot.querySelector('#stop').textContent === 'Fechar'", timeout=30000)
+        self.assertEqual(self.page.evaluate('attempts'), 2)
+        self.assertEqual(self.page.evaluate('sent'), ['1'])
+        self.assertIn('1 posts excluídos', self.page.locator('#xterminator-deletion [role=status]').inner_text())
+
+    def test_backoff_gives_up_after_the_configured_attempts(self):
+        self.options(limit=1, interval=0.1)
+        self.post('1')
+        self.page.evaluate("""() => {
+          window.attempts = 0;
+          const article = document.querySelector('article');
+          article.querySelector('[data-testid=caret]').onclick = () => {
+            const menu = document.createElement('div'); menu.setAttribute('role','menu');
+            menu.innerHTML = '<button role="menuitem">Excluir</button>';
+            menu.firstChild.onclick = () => {
+              menu.remove();
+              const confirm = document.createElement('button');
+              confirm.dataset.testid = 'confirmationSheetConfirm'; confirm.textContent = 'Excluir';
+              confirm.onclick = () => { window.attempts++; confirm.remove(); };
+              document.body.append(confirm);
+            };
+            document.body.append(menu);
+          };
+        }""")
+        source = (ROOT / 'delete.js').read_text().replace('[300, 600, 1200, 1800]', '[1, 1]').replace('}, 12000, false);', '}, 300, false);')
+        self.page.evaluate(source)
+        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
+        self.page.wait_for_function("document.querySelector('#xterminator-deletion').shadowRoot.querySelector('#stop').textContent === 'Fechar'", timeout=30000)
+        # Duas esperas e a tentativa final: três envios, nenhuma exclusão confirmada.
+        self.assertEqual(self.page.evaluate('attempts'), 3)
+        self.assertEqual(self.page.evaluate('sent'), [])
+        self.assertIn('não confirmou a operação', self.page.locator('#xterminator-deletion [role=status]').inner_text())
+
     def test_stop_during_long_interval(self):
         self.options(limit=2, interval=86400)
         self.post('1')
