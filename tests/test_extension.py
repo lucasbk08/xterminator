@@ -87,8 +87,9 @@ class ExtensionTests(unittest.TestCase):
     def run_delete(self):
         self.page.evaluate((ROOT / "delete.js").read_text())
         self.assertEqual(self.page.evaluate("sent"), [])
-        self.assertTrue(self.page.locator("#start").is_disabled())
-        self.page.locator("#xterminator-deletion input").fill("APAGAR")
+        self.assertEqual(self.page.locator("#start").inner_text(), "Começar remoção")
+        self.page.locator("#start").click()
+        self.assertEqual(self.page.locator("#start").inner_text(), "Confirmar exclusão")
         self.page.locator("#start").click()
         self.page.wait_for_function("document.querySelector('#xterminator-deletion').shadowRoot.querySelector('#stop').textContent === 'Fechar'")
         return self.page.evaluate("sent")
@@ -269,6 +270,16 @@ class ExtensionTests(unittest.TestCase):
         # Os dois primeiros cabem na cota; o terceiro espera a janela abrir.
         self.assertLess(times[1] - times[0], 500)
         self.assertGreaterEqual(times[2] - times[0], 2000)
+
+    def test_single_click_arms_without_removing_anything(self):
+        self.options(limit=1, interval=0.1)
+        self.post('1')
+        self.page.evaluate((ROOT / 'delete.js').read_text())
+        self.page.locator('#start').click()
+        self.assertEqual(self.page.locator('#start').inner_text(), 'Confirmar exclusão')
+        self.page.wait_for_timeout(300)
+        self.assertEqual(self.page.evaluate('sent'), [])
+        self.assertIn('Nada foi excluído', self.page.locator('#xterminator-deletion [role=status]').inner_text())
 
     def test_window_quota_ignores_repost_undos(self):
         self.options(limit=5, interval=0.1, mode='all', windowLimit=1, windowSeconds=30)
@@ -493,7 +504,7 @@ class ExtensionTests(unittest.TestCase):
         }""")
         source = (ROOT / 'delete.js').read_text().replace('[600, 600, 600, 600]', '[1, 1, 1, 1]').replace('}, 12000, false);', '}, 400, false);')
         self.page.evaluate(source)
-        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
         self.page.locator('#start').click()
         self.page.wait_for_function("document.querySelector('#xterminator-deletion').shadowRoot.querySelector('#stop').textContent === 'Fechar'", timeout=30000)
         self.assertEqual(self.page.evaluate('attempts'), 2)
@@ -521,7 +532,7 @@ class ExtensionTests(unittest.TestCase):
         }""")
         source = (ROOT / 'delete.js').read_text().replace('[600, 600, 600, 600]', '[1, 1]').replace('}, 12000, false);', '}, 300, false);')
         self.page.evaluate(source)
-        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
         self.page.locator('#start').click()
         self.page.wait_for_function("document.querySelector('#xterminator-deletion').shadowRoot.querySelector('#stop').textContent === 'Fechar'", timeout=30000)
         # Duas esperas e a tentativa final: três envios, nenhuma exclusão confirmada.
@@ -534,7 +545,7 @@ class ExtensionTests(unittest.TestCase):
         self.post('1')
         self.post('2')
         self.page.evaluate((ROOT / 'delete.js').read_text())
-        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
         self.page.locator('#start').click()
         self.page.wait_for_function('sent.length===1')
         self.page.locator('#stop').click()

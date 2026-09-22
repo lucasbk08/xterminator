@@ -97,7 +97,7 @@ class ReloadTests(unittest.TestCase):
           await chrome.scripting.executeScript({target:{tabId:tab.id},func:options => {globalThis.XTerminatorOptions=options;},args:[{limit,mode,keyword:'futebol'}]});
           await chrome.scripting.executeScript({target:{tabId:tab.id},files:['delete.js']});
         }''', {'limit': limit, 'mode': mode})
-        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
         self.page.locator('#start').click()
 
     def wait_finished(self):
@@ -150,8 +150,7 @@ class ReloadTests(unittest.TestCase):
         }''')
         self.page.evaluate('''() => {
           const root=document.querySelector('#xterminator-deletion').shadowRoot;
-          root.querySelector('input').value='APAGAR';
-          root.querySelector('#start').disabled=false;
+          root.querySelector('#start').click();
           root.querySelector('#start').click();
           root.querySelector('#stop').click();
         }''')
@@ -173,12 +172,11 @@ class ReloadTests(unittest.TestCase):
             popup.locator('#delete').click()
         target = created.value
         target.wait_for_url('https://x.com/nova_conta')
-        target.locator('#xterminator-deletion input').wait_for()
+        target.locator('#xterminator-deletion #start').wait_for()
         self.assertIn('@nova_conta', target.locator('#title').inner_text())
         self.assertIn('2.75 s', target.locator('#summary').inner_text())
         self.assertEqual(self.sent, [])
-        self.assertTrue(target.locator('#start').is_disabled())
-        target.locator('input').fill('APAGAR')
+        target.locator('#start').click()
         target.locator('#start').click()
         target.locator('#stop').filter(has_text='Fechar').wait_for()
         self.assertEqual(self.sent, ['10'])
@@ -192,7 +190,7 @@ class ReloadTests(unittest.TestCase):
           await chrome.scripting.executeScript({target:{tabId:tab.id},func:o => {globalThis.XTerminatorOptions=o;},args:[options]});
           await chrome.scripting.executeScript({target:{tabId:tab.id},files:['delete.js']});
         }""", options)
-        self.page.locator('#xterminator-deletion input').fill('APAGAR')
+        self.page.locator('#start').click()
         self.page.locator('#start').click()
 
     def test_empty_state_stops_without_reloading(self):
@@ -228,7 +226,7 @@ class ReloadTests(unittest.TestCase):
             popup.locator('#delete').click()
         target = created.value
         target.wait_for_url('https://x.com/conta_sensor')
-        target.locator('#xterminator-deletion input').wait_for()
+        target.locator('#xterminator-deletion #start').wait_for()
         target.wait_for_function('window.__xterminatorLimitSensor === true')
         fired = target.evaluate("""() => new Promise(resolve => {
           document.addEventListener('xterminator-http-limit', () => resolve(true), { once: true });
@@ -265,10 +263,10 @@ class ReloadTests(unittest.TestCase):
             popup.locator('#delete').click()
         target = created.value
         target.wait_for_url('https://x.com/conta_sidebar', wait_until='domcontentloaded')
-        target.locator('#xterminator-deletion input').wait_for(timeout=10000)
+        target.locator('#xterminator-deletion #start').wait_for(timeout=10000)
         self.assertIn('@conta_sidebar', target.locator('#title').inner_text())
         self.assertEqual(self.sent, [])
-        target.locator('input').fill('APAGAR')
+        target.locator('#start').click()
         target.locator('#start').click()
         target.locator('#stop').filter(has_text='Fechar').wait_for()
         self.assertEqual(self.sent, ['20'])
@@ -287,7 +285,7 @@ class ReloadTests(unittest.TestCase):
         result = popup.evaluate("chrome.runtime.sendMessage({type:'launch', file:'delete.js', options:{limit:1}})")
         self.assertTrue(result['ok'])
         self.page.wait_for_url('https://x.com/conta_home')
-        self.page.locator('#xterminator-deletion input').wait_for()
+        self.page.locator('#xterminator-deletion #start').wait_for()
         self.assertEqual(len(self.context.pages), count)
         self.assertIn('@conta_home', self.page.locator('#title').inner_text())
         self.assertEqual(self.sent, [])
@@ -305,7 +303,7 @@ class ReloadTests(unittest.TestCase):
         self.assertTrue(pending)
         self.assertEqual(self.page.locator('#xterminator-deletion').count(), 0)
         self.page.goto('https://x.com/conta_home')
-        self.page.locator('#xterminator-deletion input').wait_for()
+        self.page.locator('#xterminator-deletion #start').wait_for()
         self.assertEqual(self.sent, [])
 
     def test_initial_tab_without_visible_url_keeps_launch_pending(self):

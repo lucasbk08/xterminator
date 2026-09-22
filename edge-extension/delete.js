@@ -20,12 +20,11 @@
   shadow.innerHTML = `<style>
     section { width:310px; padding:18px; background:white; color:#17212b;
       border:2px solid #b42318; border-radius:12px; font:14px system-ui; box-shadow:0 4px 24px #0004; }
-    button,input { padding:8px; margin-top:8px; box-sizing:border-box; }
-    input { width:100%; } button { cursor:pointer; } #start { background:#b42318;color:white;border:0; }
+    button { padding:8px; margin-top:8px; box-sizing:border-box; cursor:pointer; }
+    #start { background:#b42318;color:white;border:0; }
   </style><section><strong id="title"></strong>
   <p id="summary"></p><p>Posts próprios são excluídos permanentemente. Reposts selecionados serão desfeitos; o post original continua existindo.</p>
-  <label>Digite APAGAR para confirmar:<input aria-label="Confirmação" autocomplete="off"></label>
-  <button id="start" disabled>Começar remoção</button> <button id="stop">Cancelar</button>
+  <button id="start">Começar remoção</button> <button id="stop">Cancelar</button>
   <p role="status">Aguardando sua confirmação. Nada foi excluído.</p></section>`;
   const theme = document.createElement('style');
   theme.textContent = filters.panelStyle;
@@ -33,7 +32,6 @@
   document.body.append(host);
   shadow.querySelector('#title').textContent = `Remover itens de @${USERNAME}`;
   shadow.querySelector('#summary').textContent = filters.describe(options);
-  const input = shadow.querySelector('input');
   const start = shadow.querySelector('#start');
   const stop = shadow.querySelector('#stop');
   const status = shadow.querySelector('[role="status"]');
@@ -124,18 +122,24 @@
     const link = article.querySelector('time')?.closest('a');
     return link?.getAttribute('href')?.match(/^\/([^/]+)\/status\/(\d+)(?:[/?]|$)/);
   }
-  input.oninput = () => { start.disabled = input.value !== 'APAGAR'; };
   stop.onclick = () => {
     if (!running) { host.remove(); return; }
     stopped = true;
     if (globalThis.chrome?.runtime?.id) void chrome.runtime.sendMessage({ type: 'cancel-reload' }).catch(() => {});
     status.textContent = 'Parando… Uma exclusão já enviada pode terminar.';
   };
+  // Dois cliques em vez de digitar: o primeiro arma, o segundo executa.
+  let armed = !!resume;
   start.onclick = async () => {
-    if (running || input.value !== 'APAGAR') return;
+    if (running) return;
+    if (!armed) {
+      armed = true;
+      start.textContent = 'Confirmar exclusão';
+      status.textContent = 'Clique em Confirmar exclusão para começar. Nada foi excluído ainda.';
+      return;
+    }
     running = true;
     start.disabled = true;
-    input.disabled = true;
     stop.textContent = 'Parar';
     let menuOpen = false;
     let confirmation = null;
@@ -324,8 +328,5 @@
       }
     }
   };
-  if (resume) {
-    input.value = 'APAGAR';
-    void start.onclick();
-  }
+  if (resume) void start.onclick();
 })();

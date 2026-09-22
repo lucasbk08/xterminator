@@ -34,7 +34,8 @@ antes de mostrar a confirmação. Se necessário,
 faça login no próprio X. A extensão não pede senha nem copia cookies.
 
 A prévia mostra os itens encontrados sem alterá-los. Na remoção, confira o usuário
-exibido e os filtros, digite **APAGAR** e confirme. Posts excluídos não podem ser
+exibido e os filtros e clique em **Começar remoção**; o botão vira **Confirmar
+exclusão** e só o segundo clique inicia de fato. Nada acontece com um clique só. Posts excluídos não podem ser
 recuperados. Desfazer um repost preserva o post original. **Parar** impede novas
 ações; uma operação enviada pode terminar.
 
