@@ -271,6 +271,42 @@ class ExtensionTests(unittest.TestCase):
         self.assertLess(times[1] - times[0], 500)
         self.assertGreaterEqual(times[2] - times[0], 2000)
 
+    def leftover_dialog(self, closes_on_escape=True):
+        """O X pode deixar a folha de confirmação na tela após a ação anterior."""
+        self.page.evaluate("""closes => {
+          document.addEventListener('click', event => {
+            if (event.target.dataset.testid !== 'confirmationSheetConfirm') return;
+            const leftover = document.createElement('div');
+            leftover.setAttribute('role', 'dialog');
+            leftover.textContent = 'resto da ação anterior';
+            document.body.append(leftover);
+          }, true);
+          if (!closes) return;
+          window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') document.querySelectorAll('[role=dialog]').forEach(el => el.remove());
+          });
+        }""", closes_on_escape)
+
+    def test_deletion_followed_by_repost_survives_leftover_dialog(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2', confirm=True)
+        self.dropdown('All')
+        self.leftover_dialog()
+        self.assertEqual(self.run_delete(), ['1'])
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 1)
+
+    def test_dialog_opened_by_the_user_still_stops_the_run(self):
+        self.options(limit=5, interval=0.1, mode='all')
+        self.post('1')
+        self.repost('2', confirm=True)
+        self.dropdown('All')
+        self.leftover_dialog(closes_on_escape=False)
+        self.assertEqual(self.run_delete(), ['1'])
+        # O diálogo que não fecha é tratado como do usuário: a execução para.
+        self.assertEqual(self.page.evaluate('window.undone || 0'), 0)
+        self.assertIn('Feche o menu ou diálogo', self.page.locator('#xterminator-deletion [role=status]').inner_text())
+
     def test_single_click_arms_without_removing_anything(self):
         self.options(limit=1, interval=0.1)
         self.post('1')

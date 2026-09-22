@@ -93,6 +93,7 @@
       await countdown(left, remaining => `Cota de ${options.windowLimit} exclusões por ${Math.round(options.windowSeconds / 60)} min atingida, contando execuções anteriores. Reposts não contam. Retomando em ${Math.ceil(remaining / 60)} min.`);
     }
   }
+  const overlays = () => [...document.querySelectorAll('[role="menu"], [role="dialog"], [data-testid="confirmationSheetConfirm"]')].filter(visible);
   async function clearOverlays() {
     document.querySelector('[data-testid="confirmationSheetCancel"]')?.click();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
@@ -216,9 +217,16 @@
         const isRepost = filters.read(article).repost;
         const caret = isRepost ? filters.undoButton(article) : article.querySelector('[data-testid="caret"]');
         if (!caret) throw new Error('Botão da ação selecionada não encontrado.');
-        // Não interage com menus ou diálogos que já estavam abertos pelo usuário.
-        if ([...document.querySelectorAll('[role="menu"], [role="dialog"]')].some(visible)) {
-          throw new Error('Feche o menu ou diálogo aberto antes de tentar novamente.');
+        // A ação anterior pode deixar menu ou folha de confirmação na tela, e isso
+        // atrapalha a próxima — principalmente ao alternar entre excluir e desfazer.
+        // Tenta fechar o que sobrou; só desiste se continuar aberto, aí é do usuário.
+        if (overlays().length) {
+          const limit = Date.now() + 4000;
+          while (overlays().length && Date.now() < limit) {
+            check();
+            await clearOverlays();
+          }
+          if (overlays().length) throw new Error('Feche o menu ou diálogo aberto antes de tentar novamente.');
         }
         caret.click();
         menuOpen = true;

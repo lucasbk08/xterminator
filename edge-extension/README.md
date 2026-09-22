@@ -36,7 +36,9 @@ faça login no próprio X. A extensão não pede senha nem copia cookies.
 A prévia mostra os itens encontrados sem alterá-los. Na remoção, confira o usuário
 exibido e os filtros e clique em **Começar remoção**; o botão vira **Confirmar
 exclusão** e só o segundo clique inicia de fato. Nada acontece com um clique só. Posts excluídos não podem ser
-recuperados. Desfazer um repost preserva o post original. **Parar** impede novas
+recuperados. Desfazer um repost preserva o post original. Ao alternar entre excluir
+e desfazer, a extensão fecha sozinha o menu ou a confirmação que o X deixou aberto;
+se algo continuar aberto depois disso, ela entende que é seu e para. **Parar** impede novas
 ações; uma operação enviada pode terminar.
 
 A inicialização não depende do carregamento completo de imagens e outros recursos.
