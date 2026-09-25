@@ -8,6 +8,7 @@ EXTENSION = ROOT / "edge-extension"
 FILES = (
     "manifest.json", "background.js", "bootstrap.js", "filters.js", "delete.js",
     "simulate.js", "popup.html", "popup.css", "popup.js", "README.md", "PRIVACY.md", "LICENSE",
+    "icons/icon-16.png", "icons/icon-32.png", "icons/icon-48.png", "icons/icon-128.png",
 )
 
 

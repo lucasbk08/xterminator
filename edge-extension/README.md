@@ -16,11 +16,17 @@ Extensão local para limpar posts, respostas e reposts da conta conectada ao X.
 Inclui prévia, filtros de data e texto, limite por execução, intervalo configurável
 e descanso periódico entre lotes.
 
-## Instalar no Edge
+## Instalar
+
+Funciona em navegadores baseados em Chromium: Edge, Chrome, Opera, Brave e Vivaldi.
 
 1. Baixe esta pasta (ela contém `manifest.json`).
-2. Abra `edge://extensions` e ative **Modo do desenvolvedor**.
-3. Clique em **Carregar sem compactação** e selecione a pasta.
+2. Abra a página de extensões do navegador e ative **Modo do desenvolvedor**:
+   - Edge: `edge://extensions`
+   - Chrome, Brave e Vivaldi: `chrome://extensions`
+   - Opera: `opera://extensions`
+3. Clique em **Carregar sem compactação** (**Load unpacked** em inglês) e selecione
+   a pasta.
 4. Para atualizar uma instalação existente, clique em **Recarregar** no cartão da
    extensão e atualize as abas do X antes de iniciar uma nova execução.
 
