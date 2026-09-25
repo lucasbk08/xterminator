@@ -9,7 +9,7 @@ void (async () => {
   if (document.getElementById('xterminator-launch')) return;
   const panel = document.createElement('div');
   panel.id = 'xterminator-launch';
-  panel.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;max-width:330px;padding:20px;background:#101318;color:#edf0f6;border:1px solid #d7ff83;border-radius:12px;font:14px system-ui;box-shadow:0 8px 32px #0005';
+  panel.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;max-width:330px;padding:20px;background:#05070b;color:#edf0f6;border:1px solid #2e8bff;border-radius:12px;font:14px system-ui;box-shadow:0 8px 32px #0005';
   const text = document.createElement('p');
   text.textContent = 'XTerminator · Identificando sua conta. Se necessário, faça login no X para continuar.';
   const cancel = document.createElement('button');
